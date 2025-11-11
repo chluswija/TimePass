@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { toast as sonnerToast } from 'sonner';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -24,9 +27,17 @@ const Auth = () => {
     try {
       if (isLogin) {
         await login(email, password);
+        
+        // Show enhanced welcome notification with Sonner (better looking)
+        sonnerToast.success('Welcome back! 👋', {
+          description: `You're now logged in. Happy scrolling!`,
+          duration: 4000,
+        });
+        
+        // Also show traditional toast for consistency
         toast({
-          title: 'Success',
-          description: 'Logged in successfully!',
+          title: '🎉 Welcome Back!',
+          description: 'You have successfully logged in to Timepass',
         });
       } else {
         if (!username) {
@@ -39,9 +50,16 @@ const Auth = () => {
           return;
         }
         await signup(email, password, username);
+        
+        // Welcome message for new users
+        sonnerToast.success('Account Created! 🎊', {
+          description: `Welcome to Timepass, ${username}! Start sharing your moments.`,
+          duration: 5000,
+        });
+        
         toast({
-          title: 'Success',
-          description: 'Account created successfully!',
+          title: '🎉 Welcome to Timepass!',
+          description: 'Your account has been created successfully',
         });
       }
       navigate('/');

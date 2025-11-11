@@ -5,12 +5,12 @@ import { collection, query, where, orderBy, onSnapshot, limit, getDoc, doc } fro
 import { db } from '@/lib/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Link } from 'react-router-dom';
-import { Heart, MessageCircle, UserPlus } from 'lucide-react';
+import { Heart, MessageCircle, UserPlus, LogIn } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 interface Notification {
   id: string;
-  type: 'like' | 'comment' | 'follow';
+  type: 'like' | 'comment' | 'follow' | 'login';
   userId: string;
   postId?: string;
   timestamp: string;
@@ -32,9 +32,39 @@ const Notifications = () => {
     let unsubscribeLikes: (() => void) | undefined;
     let unsubscribeComments: (() => void) | undefined;
     let unsubscribeFollows: (() => void) | undefined;
+    let unsubscribeLoginActivities: (() => void) | undefined;
 
     const setupListeners = async () => {
       try {
+        // Listen to login activities
+        const loginActivitiesQuery = query(
+          collection(db, 'loginActivities'),
+          where('userId', '==', user.uid),
+          orderBy('timestamp', 'desc'),
+          limit(20)
+        );
+        
+        unsubscribeLoginActivities = onSnapshot(loginActivitiesQuery, async (snapshot) => {
+          const loginNotifications: Notification[] = [];
+          
+          for (const loginDoc of snapshot.docs) {
+            const loginData = loginDoc.data();
+            const userDoc = await getDoc(doc(db, 'users', loginData.actorId));
+            const userData = userDoc.exists() ? userDoc.data() : {};
+            
+            loginNotifications.push({
+              id: loginDoc.id,
+              type: 'login',
+              userId: loginData.actorId,
+              timestamp: loginData.timestamp,
+              userName: loginData.actorUsername || userData.username || userData.displayName || 'Someone',
+              userPhoto: userData.profilePicUrl || userData.photoURL
+            });
+          }
+          
+          updateNotifications(loginNotifications, 'logins');
+        });
+
         // Listen to likes on user's posts
         const likesQuery = query(
           collection(db, 'likes'),
@@ -148,6 +178,7 @@ const Notifications = () => {
           if (type === 'likes') return n.type !== 'like';
           if (type === 'comments') return n.type !== 'comment';
           if (type === 'follows') return n.type !== 'follow';
+          if (type === 'logins') return n.type !== 'login';
           return true;
         });
         
@@ -164,6 +195,7 @@ const Notifications = () => {
       if (unsubscribeLikes) unsubscribeLikes();
       if (unsubscribeComments) unsubscribeComments();
       if (unsubscribeFollows) unsubscribeFollows();
+      if (unsubscribeLoginActivities) unsubscribeLoginActivities();
     };
   }, [user]);
 
@@ -175,6 +207,8 @@ const Notifications = () => {
         return <MessageCircle className="w-5 h-5 text-blue-500" />;
       case 'follow':
         return <UserPlus className="w-5 h-5 text-green-500" />;
+      case 'login':
+        return <LogIn className="w-5 h-5 text-purple-500" />;
       default:
         return null;
     }
@@ -188,6 +222,8 @@ const Notifications = () => {
         return `commented: ${notification.commentText}`;
       case 'follow':
         return 'started following you';
+      case 'login':
+        return 'is now online';
       default:
         return '';
     }

@@ -7,8 +7,9 @@ import {
   onAuthStateChanged,
   updateProfile
 } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
+import { notifyFollowersOfLogin } from '@/lib/loginNotifications';
 
 interface AuthContextType {
   user: User | null;
@@ -65,6 +66,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         followers: [],
         following: [],
         createdAt: new Date().toISOString(),
+        lastLogin: new Date().toISOString(),
+        isOnline: true,
       });
     } catch (error: any) {
       throw new Error(error.message);
@@ -73,7 +76,22 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const login = async (email: string, password: string) => {
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      // Update last login timestamp and online status
+      await updateDoc(doc(db, 'users', user.uid), {
+        lastLogin: new Date().toISOString(),
+        isOnline: true,
+      });
+      
+      // Get user data and notify followers of login (async, don't wait)
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        // Don't await this - let it run in background
+        notifyFollowersOfLogin(user.uid, userData.username || user.displayName || 'User');
+      }
     } catch (error: any) {
       throw new Error(error.message);
     }
@@ -81,6 +99,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const logout = async () => {
     try {
+      // Update online status before logging out
+      if (auth.currentUser) {
+        await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+          isOnline: false,
+        });
+      }
       await signOut(auth);
     } catch (error: any) {
       throw new Error(error.message);
