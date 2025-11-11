@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import SidebarNavigation from '@/components/Layout/SidebarNavigation';
 import { Input } from '@/components/ui/input';
-import { Search, MessageCircle, Edit } from 'lucide-react';
+import { Search, MessageCircle, Edit, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { collection, query, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -63,23 +63,36 @@ const Messages = () => {
           {/* Header with title and new message button */}
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-semibold">Messages</h1>
-            <Button variant="ghost" size="icon" className="rounded-full">
+            <Button variant="ghost" size="icon" className="rounded-full hover:bg-accent">
               <Edit className="h-5 w-5" />
             </Button>
           </div>
 
-          {/* Search Bar */}
-          <div className="mb-6">
+          {/* Search Bar - Always Visible */}
+          <div className="mb-6 sticky top-0 z-10 bg-background pb-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Search people..."
+                placeholder="Search people to message..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-primary"
+                className="pl-10 pr-4 h-12 bg-muted/50 border border-border focus-visible:ring-2 focus-visible:ring-primary rounded-lg text-base"
               />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
+            {searchQuery && (
+              <p className="text-sm text-muted-foreground mt-2">
+                Searching for "{searchQuery}"...
+              </p>
+            )}
           </div>
 
           {/* Search Results or Messages List */}

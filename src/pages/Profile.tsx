@@ -10,6 +10,7 @@ import { useParams } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import EditProfileDialog from '@/components/Profile/EditProfileDialog';
 import ShareProfileDialog from '@/components/Profile/ShareProfileDialog';
+import FollowListDialog from '@/components/Profile/FollowListDialog';
 import PostCard from '@/components/Post/PostCard';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 
@@ -30,8 +31,20 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState<'posts' | 'reels' | 'saved'>('posts');
   const [selectedPost, setSelectedPost] = useState<any>(null);
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
+  const [isFollowListOpen, setIsFollowListOpen] = useState(false);
+  const [followListType, setFollowListType] = useState<'followers' | 'following'>('followers');
 
   const isOwnProfile = !userId || userId === user?.uid;
+
+  const openFollowersList = () => {
+    setFollowListType('followers');
+    setIsFollowListOpen(true);
+  };
+
+  const openFollowingList = () => {
+    setFollowListType('following');
+    setIsFollowListOpen(true);
+  };
 
   const handlePostClick = (post: any) => {
     setSelectedPost(post);
@@ -321,14 +334,20 @@ const Profile = () => {
                   <div className="font-semibold">{posts.length + reels.length}</div>
                   <div className="text-sm text-muted-foreground">posts</div>
                 </div>
-                <div className="text-center md:text-left">
+                <button 
+                  onClick={openFollowersList}
+                  className="text-center md:text-left hover:opacity-70 transition-opacity cursor-pointer"
+                >
                   <div className="font-semibold">{followersCount}</div>
                   <div className="text-sm text-muted-foreground">followers</div>
-                </div>
-                <div className="text-center md:text-left">
+                </button>
+                <button 
+                  onClick={openFollowingList}
+                  className="text-center md:text-left hover:opacity-70 transition-opacity cursor-pointer"
+                >
                   <div className="font-semibold">{followingCount}</div>
                   <div className="text-sm text-muted-foreground">following</div>
-                </div>
+                </button>
               </div>
 
               {/* Action Buttons - Mobile (after stats) */}
@@ -548,6 +567,14 @@ const Profile = () => {
             isOpen={isShareDialogOpen}
             onClose={() => setIsShareDialogOpen(false)}
             user={displayUser}
+          />
+
+          {/* Follow List Dialog */}
+          <FollowListDialog
+            isOpen={isFollowListOpen}
+            onClose={() => setIsFollowListOpen(false)}
+            userId={userId || user?.uid || ''}
+            type={followListType}
           />
 
           {/* Fullscreen Post Modal */}

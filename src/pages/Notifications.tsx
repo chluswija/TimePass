@@ -229,65 +229,212 @@ const Notifications = () => {
     }
   };
 
+  // Group notifications by date
+  const groupNotificationsByDate = (notifications: Notification[]) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    const groups: { [key: string]: Notification[] } = {
+      today: [],
+      yesterday: [],
+      earlier: []
+    };
+    
+    notifications.forEach(notification => {
+      const notifDate = new Date(notification.timestamp);
+      notifDate.setHours(0, 0, 0, 0);
+      
+      if (notifDate.getTime() === today.getTime()) {
+        groups.today.push(notification);
+      } else if (notifDate.getTime() === yesterday.getTime()) {
+        groups.yesterday.push(notification);
+      } else {
+        groups.earlier.push(notification);
+      }
+    });
+    
+    return groups;
+  };
+
+  const groupedNotifications = groupNotificationsByDate(notifications);
+
   return (
     <SidebarNavigation>
       <div className="min-h-screen bg-background">
         <main className="container mx-auto max-w-2xl pt-6 pb-20 md:pb-6 px-4">
-          <h1 className="text-2xl font-semibold mb-6">Notifications</h1>
+          {/* Header */}
+          <div className="mb-6">
+            <h1 className="text-2xl md:text-3xl font-semibold">Notifications</h1>
+            {!loading && notifications.length > 0 && (
+              <p className="text-sm text-muted-foreground mt-1">
+                {notifications.length} notification{notifications.length !== 1 ? 's' : ''}
+              </p>
+            )}
+          </div>
           
           {loading ? (
             <div className="text-center py-10">
-              <p className="text-muted-foreground">Loading notifications...</p>
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
+              <p className="text-muted-foreground mt-4">Loading notifications...</p>
             </div>
           ) : notifications.length === 0 ? (
             <div className="text-center py-20">
-              <p className="text-muted-foreground">
-                No notifications yet. When someone likes, comments on your posts, or follows you, you'll see them here.
+              <div className="bg-muted rounded-full p-6 inline-block mb-4">
+                <Heart className="h-12 w-12 text-muted-foreground" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">No notifications yet</h3>
+              <p className="text-muted-foreground max-w-sm mx-auto">
+                When someone likes, comments on your posts, or follows you, you'll see them here.
               </p>
             </div>
           ) : (
-            <div className="space-y-1">
-              {notifications.map((notification) => (
-                <Link
-                  key={notification.id}
-                  to={
-                    notification.type === 'follow'
-                      ? `/profile/${notification.userId}`
-                      : `/profile/${notification.userId}`
-                  }
-                  className="flex items-center gap-3 p-3 hover:bg-muted rounded-lg transition-colors"
-                >
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={notification.userPhoto} />
-                    <AvatarFallback>
-                      {notification.userName?.[0]?.toUpperCase() || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                  
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm">
-                      <span className="font-semibold">{notification.userName}</span>{' '}
-                      <span className="text-muted-foreground">
-                        {getNotificationText(notification)}
-                      </span>
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
-                    </p>
-                  </div>
+            <div className="space-y-6">
+              {/* Today's Notifications */}
+              {groupedNotifications.today.length > 0 && (
+                <div>
+                  <h2 className="text-sm font-semibold text-muted-foreground mb-3 px-2">Today</h2>
+                  <div className="space-y-1 bg-card rounded-lg border">
+                    {groupedNotifications.today.map((notification, index) => (
+                      <Link
+                        key={notification.id}
+                        to={`/profile/${notification.userId}`}
+                        className={`flex items-center gap-3 p-3 md:p-4 hover:bg-muted transition-colors ${
+                          index !== groupedNotifications.today.length - 1 ? 'border-b' : ''
+                        }`}
+                      >
+                        <Avatar className="h-12 w-12 md:h-14 md:w-14 ring-2 ring-background">
+                          <AvatarImage src={notification.userPhoto} />
+                          <AvatarFallback className="text-lg">
+                            {notification.userName?.[0]?.toUpperCase() || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm md:text-base">
+                            <span className="font-semibold">{notification.userName}</span>{' '}
+                            <span className="text-muted-foreground">
+                              {getNotificationText(notification)}
+                            </span>
+                          </p>
+                          <p className="text-xs md:text-sm text-muted-foreground mt-1">
+                            {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
+                          </p>
+                        </div>
 
-                  <div className="flex items-center gap-2">
-                    {getNotificationIcon(notification.type)}
-                    {notification.postImage && (
-                      <img
-                        src={notification.postImage}
-                        alt="Post"
-                        className="w-10 h-10 object-cover rounded"
-                      />
-                    )}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {getNotificationIcon(notification.type)}
+                          {notification.postImage && (
+                            <img
+                              src={notification.postImage}
+                              alt="Post"
+                              className="w-12 h-12 md:w-14 md:h-14 object-cover rounded border-2 border-background"
+                            />
+                          )}
+                        </div>
+                      </Link>
+                    ))}
                   </div>
-                </Link>
-              ))}
+                </div>
+              )}
+
+              {/* Yesterday's Notifications */}
+              {groupedNotifications.yesterday.length > 0 && (
+                <div>
+                  <h2 className="text-sm font-semibold text-muted-foreground mb-3 px-2">Yesterday</h2>
+                  <div className="space-y-1 bg-card rounded-lg border">
+                    {groupedNotifications.yesterday.map((notification, index) => (
+                      <Link
+                        key={notification.id}
+                        to={`/profile/${notification.userId}`}
+                        className={`flex items-center gap-3 p-3 md:p-4 hover:bg-muted transition-colors ${
+                          index !== groupedNotifications.yesterday.length - 1 ? 'border-b' : ''
+                        }`}
+                      >
+                        <Avatar className="h-12 w-12 md:h-14 md:w-14 ring-2 ring-background">
+                          <AvatarImage src={notification.userPhoto} />
+                          <AvatarFallback className="text-lg">
+                            {notification.userName?.[0]?.toUpperCase() || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm md:text-base">
+                            <span className="font-semibold">{notification.userName}</span>{' '}
+                            <span className="text-muted-foreground">
+                              {getNotificationText(notification)}
+                            </span>
+                          </p>
+                          <p className="text-xs md:text-sm text-muted-foreground mt-1">
+                            {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {getNotificationIcon(notification.type)}
+                          {notification.postImage && (
+                            <img
+                              src={notification.postImage}
+                              alt="Post"
+                              className="w-12 h-12 md:w-14 md:h-14 object-cover rounded border-2 border-background"
+                            />
+                          )}
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Earlier Notifications */}
+              {groupedNotifications.earlier.length > 0 && (
+                <div>
+                  <h2 className="text-sm font-semibold text-muted-foreground mb-3 px-2">Earlier</h2>
+                  <div className="space-y-1 bg-card rounded-lg border">
+                    {groupedNotifications.earlier.map((notification, index) => (
+                      <Link
+                        key={notification.id}
+                        to={`/profile/${notification.userId}`}
+                        className={`flex items-center gap-3 p-3 md:p-4 hover:bg-muted transition-colors ${
+                          index !== groupedNotifications.earlier.length - 1 ? 'border-b' : ''
+                        }`}
+                      >
+                        <Avatar className="h-12 w-12 md:h-14 md:w-14 ring-2 ring-background">
+                          <AvatarImage src={notification.userPhoto} />
+                          <AvatarFallback className="text-lg">
+                            {notification.userName?.[0]?.toUpperCase() || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm md:text-base">
+                            <span className="font-semibold">{notification.userName}</span>{' '}
+                            <span className="text-muted-foreground">
+                              {getNotificationText(notification)}
+                            </span>
+                          </p>
+                          <p className="text-xs md:text-sm text-muted-foreground mt-1">
+                            {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {getNotificationIcon(notification.type)}
+                          {notification.postImage && (
+                            <img
+                              src={notification.postImage}
+                              alt="Post"
+                              className="w-12 h-12 md:w-14 md:h-14 object-cover rounded border-2 border-background"
+                            />
+                          )}
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </main>
