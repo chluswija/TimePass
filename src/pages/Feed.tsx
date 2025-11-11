@@ -79,8 +79,8 @@ const Feed = () => {
         <main className="container mx-auto max-w-2xl pt-6 pb-20 md:pb-6">
           {/* Stories Section */}
           {!loading && (stories.length > 0 || user) && (
-            <div className="mb-8">
-              <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scroll-smooth">
+            <div className="mb-8 -mx-4 px-4">
+              <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scroll-smooth scrollbar-hide">
                 {/* Your Story */}
                 {user && (
                   <div className="flex-shrink-0 snap-start">

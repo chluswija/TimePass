@@ -105,7 +105,7 @@ const Messages = () => {
                   {searchResults.map((foundUser) => (
                     <Link
                       key={foundUser.id}
-                      to={`/profile/${foundUser.uid}`}
+                      to={`/messages/${foundUser.uid}`}
                       className="flex items-center gap-3 p-3 hover:bg-muted rounded-lg transition-colors"
                     >
                       <Avatar className="h-12 w-12">
@@ -119,24 +119,14 @@ const Messages = () => {
                           <p className="font-semibold">
                             {foundUser.username || foundUser.displayName || 'User'}
                           </p>
-                          {foundUser.uid && (
-                            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                              ID: {foundUser.uid.substring(0, 8)}...
-                            </span>
-                          )}
                         </div>
-                        {foundUser.email && (
-                          <p className="text-xs text-muted-foreground truncate">
-                            {foundUser.email}
-                          </p>
-                        )}
                         {foundUser.bio && (
                           <p className="text-sm text-muted-foreground truncate mt-1">
                             {foundUser.bio}
                           </p>
                         )}
                       </div>
-                      <MessageCircle className="h-5 w-5 text-muted-foreground" />
+                      <MessageCircle className="h-5 w-5 text-primary" />
                     </Link>
                   ))}
                 </div>

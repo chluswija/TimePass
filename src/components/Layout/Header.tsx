@@ -13,9 +13,17 @@ const Header = () => {
   const location = useLocation();
   const [notificationCount, setNotificationCount] = useState(0);
   const [messageCount, setMessageCount] = useState(0);
+  const [hasViewedNotifications, setHasViewedNotifications] = useState(false);
 
   // Check if the current route matches
   const isActive = (path: string) => location.pathname === path;
+
+  // Clear notification count when viewing notifications page
+  useEffect(() => {
+    if (location.pathname === '/notifications') {
+      setHasViewedNotifications(true);
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!user) return;
@@ -130,7 +138,7 @@ const Header = () => {
                 aria-label="Notifications"
               >
                 <Heart className="h-5 w-5" />
-                {notificationCount > 0 && (
+                {notificationCount > 0 && !hasViewedNotifications && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
                     {notificationCount > 9 ? '9+' : notificationCount}
                   </span>

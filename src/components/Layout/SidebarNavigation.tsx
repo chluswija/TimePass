@@ -52,8 +52,8 @@ const SidebarNavigation: React.FC<React.PropsWithChildren> = ({ children }) => {
           <SidebarMenu className="space-y-1">
             <SidebarMenuItem>
               <SidebarMenuButton asChild className={cn(
-                "w-full justify-start gap-4 px-3 py-3 rounded-lg transition-all hover:bg-accent",
-                isActive('/') && "bg-accent font-semibold"
+                "w-full justify-start gap-4 px-3 py-3 rounded-lg transition-all hover:bg-muted",
+                isActive('/') && "bg-muted font-semibold"
               )}>
                 <Link to="/">
                   <Home className={cn("h-6 w-6", isActive('/') && "fill-current")} />
@@ -63,8 +63,8 @@ const SidebarNavigation: React.FC<React.PropsWithChildren> = ({ children }) => {
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild className={cn(
-                "w-full justify-start gap-4 px-3 py-3 rounded-lg transition-all hover:bg-accent",
-                isActive('/reels') && "bg-accent font-semibold"
+                "w-full justify-start gap-4 px-3 py-3 rounded-lg transition-all hover:bg-muted",
+                isActive('/reels') && "bg-muted font-semibold"
               )}>
                 <Link to="/reels">
                   <Video className="h-6 w-6" />
@@ -74,8 +74,8 @@ const SidebarNavigation: React.FC<React.PropsWithChildren> = ({ children }) => {
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild className={cn(
-                "w-full justify-start gap-4 px-3 py-3 rounded-lg transition-all hover:bg-accent",
-                isActive('/create') && "bg-accent font-semibold"
+                "w-full justify-start gap-4 px-3 py-3 rounded-lg transition-all hover:bg-muted",
+                isActive('/create') && "bg-muted font-semibold"
               )}>
                 <Link to="/create">
                   <PlusSquare className="h-6 w-6" />
@@ -85,8 +85,8 @@ const SidebarNavigation: React.FC<React.PropsWithChildren> = ({ children }) => {
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild className={cn(
-                "w-full justify-start gap-4 px-3 py-3 rounded-lg transition-all hover:bg-accent",
-                isActive('/messages') && "bg-accent font-semibold"
+                "w-full justify-start gap-4 px-3 py-3 rounded-lg transition-all hover:bg-muted",
+                isActive('/messages') && "bg-muted font-semibold"
               )}>
                 <Link to="/messages">
                   <MessageCircle className="h-6 w-6" />
@@ -96,8 +96,8 @@ const SidebarNavigation: React.FC<React.PropsWithChildren> = ({ children }) => {
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild className={cn(
-                "w-full justify-start gap-4 px-3 py-3 rounded-lg transition-all hover:bg-accent",
-                isActive('/notifications') && "bg-accent font-semibold"
+                "w-full justify-start gap-4 px-3 py-3 rounded-lg transition-all hover:bg-muted",
+                isActive('/notifications') && "bg-muted font-semibold"
               )}>
                 <Link to="/notifications">
                   <Heart className={cn("h-6 w-6", isActive('/notifications') && "fill-current")} />
@@ -107,8 +107,8 @@ const SidebarNavigation: React.FC<React.PropsWithChildren> = ({ children }) => {
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild className={cn(
-                "w-full justify-start gap-4 px-3 py-3 rounded-lg transition-all hover:bg-accent",
-                isActive('/profile') && "bg-accent font-semibold"
+                "w-full justify-start gap-4 px-3 py-3 rounded-lg transition-all hover:bg-muted",
+                isActive('/profile') && "bg-muted font-semibold"
               )}>
                 <Link to="/profile" className="flex items-center gap-4">
                   <Avatar className="h-6 w-6">
@@ -127,7 +127,7 @@ const SidebarNavigation: React.FC<React.PropsWithChildren> = ({ children }) => {
           <Button 
             variant="ghost" 
             onClick={logout} 
-            className="w-full justify-start gap-4 px-3 py-3 rounded-lg hover:bg-accent text-base font-normal"
+            className="w-full justify-start gap-4 px-3 py-3 rounded-lg hover:bg-muted text-base font-normal"
           >
             <LogOut className="h-6 w-6" />
             <span>Logout</span>
