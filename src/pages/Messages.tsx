@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import SidebarNavigation from '@/components/Layout/SidebarNavigation';
 import { Input } from '@/components/ui/input';
-import { Search, MessageCircle, Edit, X } from 'lucide-react';
+import { Search, MessageCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { collection, query, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -60,12 +60,9 @@ const Messages = () => {
     <SidebarNavigation>
       <div className="min-h-screen bg-background">
         <main className="container mx-auto max-w-4xl pt-6 pb-20 md:pb-6 px-4">
-          {/* Header with title and new message button */}
+          {/* Header with title */}
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-semibold">Messages</h1>
-            <Button variant="ghost" size="icon" className="rounded-full hover:bg-accent">
-              <Edit className="h-5 w-5" />
-            </Button>
           </div>
 
           {/* Search Bar - Always Visible */}

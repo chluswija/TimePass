@@ -29,7 +29,7 @@ const StoryPreview = ({ story, isOwnStory = false, userName }: StoryPreviewProps
         className="flex flex-col items-center gap-2 cursor-pointer group"
       >
         <div className="relative">
-          <Avatar className="h-16 w-16 ring-2 ring-offset-2 ring-gray-300 group-hover:ring-primary transition-all">
+          <Avatar className="h-16 w-16 ring-2 ring-gray-300 group-hover:ring-primary transition-all">
             <AvatarImage src={story.author.profilePic} />
             <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white font-semibold">
               {firstLetter}
@@ -50,7 +50,7 @@ const StoryPreview = ({ story, isOwnStory = false, userName }: StoryPreviewProps
       className="flex flex-col items-center gap-2 cursor-pointer group"
     >
       <div className="relative">
-        <Avatar className="h-16 w-16 ring-2 ring-offset-2 ring-pink-500 group-hover:ring-pink-600 transition-all">
+        <Avatar className="h-16 w-16 ring-2 ring-pink-500 group-hover:ring-pink-600 transition-all">
           <AvatarImage src={story.author.profilePic} />
           <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white font-semibold">
             {story.author.username?.[0]?.toUpperCase() || 'U'}

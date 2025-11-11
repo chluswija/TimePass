@@ -5,8 +5,9 @@ import { collection, query, where, orderBy, onSnapshot, limit, getDoc, doc } fro
 import { db } from '@/lib/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Link } from 'react-router-dom';
-import { Heart, MessageCircle, UserPlus, LogIn } from 'lucide-react';
+import { Heart, MessageCircle, UserPlus, LogIn, X } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { Button } from '@/components/ui/button';
 
 interface Notification {
   id: string;
@@ -24,6 +25,7 @@ const Notifications = () => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dismissedNotifications, setDismissedNotifications] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!user) return;
@@ -259,7 +261,15 @@ const Notifications = () => {
     return groups;
   };
 
-  const groupedNotifications = groupNotificationsByDate(notifications);
+  // Filter out dismissed notifications
+  const visibleNotifications = notifications.filter(n => !dismissedNotifications.has(n.id));
+  const groupedNotifications = groupNotificationsByDate(visibleNotifications);
+
+  const handleDismissNotification = (notificationId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDismissedNotifications(prev => new Set(prev).add(notificationId));
+  };
 
   return (
     <SidebarNavigation>
@@ -268,9 +278,9 @@ const Notifications = () => {
           {/* Header */}
           <div className="mb-6">
             <h1 className="text-2xl md:text-3xl font-semibold">Notifications</h1>
-            {!loading && notifications.length > 0 && (
+            {!loading && visibleNotifications.length > 0 && (
               <p className="text-sm text-muted-foreground mt-1">
-                {notifications.length} notification{notifications.length !== 1 ? 's' : ''}
+                {visibleNotifications.length} notification{visibleNotifications.length !== 1 ? 's' : ''}
               </p>
             )}
           </div>
@@ -280,7 +290,7 @@ const Notifications = () => {
               <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
               <p className="text-muted-foreground mt-4">Loading notifications...</p>
             </div>
-          ) : notifications.length === 0 ? (
+          ) : visibleNotifications.length === 0 ? (
             <div className="text-center py-20">
               <div className="bg-muted rounded-full p-6 inline-block mb-4">
                 <Heart className="h-12 w-12 text-muted-foreground" />
@@ -298,43 +308,56 @@ const Notifications = () => {
                   <h2 className="text-sm font-semibold text-muted-foreground mb-3 px-2">Today</h2>
                   <div className="space-y-1 bg-card rounded-lg border">
                     {groupedNotifications.today.map((notification, index) => (
-                      <Link
+                      <div
                         key={notification.id}
-                        to={`/profile/${notification.userId}`}
-                        className={`flex items-center gap-3 p-3 md:p-4 hover:bg-muted transition-colors ${
+                        className={`relative group ${
                           index !== groupedNotifications.today.length - 1 ? 'border-b' : ''
                         }`}
                       >
-                        <Avatar className="h-12 w-12 md:h-14 md:w-14 ring-2 ring-background">
-                          <AvatarImage src={notification.userPhoto} />
-                          <AvatarFallback className="text-lg">
-                            {notification.userName?.[0]?.toUpperCase() || 'U'}
-                          </AvatarFallback>
-                        </Avatar>
-                        
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm md:text-base">
-                            <span className="font-semibold">{notification.userName}</span>{' '}
-                            <span className="text-muted-foreground">
-                              {getNotificationText(notification)}
-                            </span>
-                          </p>
-                          <p className="text-xs md:text-sm text-muted-foreground mt-1">
-                            {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
-                          </p>
-                        </div>
+                        <Link
+                          to={`/profile/${notification.userId}`}
+                          className="flex items-center gap-3 p-3 md:p-4 hover:bg-muted transition-colors"
+                        >
+                          <Avatar className="h-12 w-12 md:h-14 md:w-14 ring-2 ring-background">
+                            <AvatarImage src={notification.userPhoto} />
+                            <AvatarFallback className="text-lg">
+                              {notification.userName?.[0]?.toUpperCase() || 'U'}
+                            </AvatarFallback>
+                          </Avatar>
+                          
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm md:text-base">
+                              <span className="font-semibold">{notification.userName}</span>{' '}
+                              <span className="text-muted-foreground">
+                                {getNotificationText(notification)}
+                              </span>
+                            </p>
+                            <p className="text-xs md:text-sm text-muted-foreground mt-1">
+                              {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
+                            </p>
+                          </div>
 
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          {getNotificationIcon(notification.type)}
-                          {notification.postImage && (
-                            <img
-                              src={notification.postImage}
-                              alt="Post"
-                              className="w-12 h-12 md:w-14 md:h-14 object-cover rounded border-2 border-background"
-                            />
-                          )}
-                        </div>
-                      </Link>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {getNotificationIcon(notification.type)}
+                            {notification.postImage && (
+                              <img
+                                src={notification.postImage}
+                                alt="Post"
+                                className="w-12 h-12 md:w-14 md:h-14 object-cover rounded border-2 border-background"
+                              />
+                            )}
+                          </div>
+                        </Link>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 hover:bg-background"
+                          onClick={(e) => handleDismissNotification(notification.id, e)}
+                          title="Dismiss notification"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -346,43 +369,56 @@ const Notifications = () => {
                   <h2 className="text-sm font-semibold text-muted-foreground mb-3 px-2">Yesterday</h2>
                   <div className="space-y-1 bg-card rounded-lg border">
                     {groupedNotifications.yesterday.map((notification, index) => (
-                      <Link
+                      <div
                         key={notification.id}
-                        to={`/profile/${notification.userId}`}
-                        className={`flex items-center gap-3 p-3 md:p-4 hover:bg-muted transition-colors ${
+                        className={`relative group ${
                           index !== groupedNotifications.yesterday.length - 1 ? 'border-b' : ''
                         }`}
                       >
-                        <Avatar className="h-12 w-12 md:h-14 md:w-14 ring-2 ring-background">
-                          <AvatarImage src={notification.userPhoto} />
-                          <AvatarFallback className="text-lg">
-                            {notification.userName?.[0]?.toUpperCase() || 'U'}
-                          </AvatarFallback>
-                        </Avatar>
-                        
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm md:text-base">
-                            <span className="font-semibold">{notification.userName}</span>{' '}
-                            <span className="text-muted-foreground">
-                              {getNotificationText(notification)}
-                            </span>
-                          </p>
-                          <p className="text-xs md:text-sm text-muted-foreground mt-1">
-                            {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
-                          </p>
-                        </div>
+                        <Link
+                          to={`/profile/${notification.userId}`}
+                          className="flex items-center gap-3 p-3 md:p-4 hover:bg-muted transition-colors"
+                        >
+                          <Avatar className="h-12 w-12 md:h-14 md:w-14 ring-2 ring-background">
+                            <AvatarImage src={notification.userPhoto} />
+                            <AvatarFallback className="text-lg">
+                              {notification.userName?.[0]?.toUpperCase() || 'U'}
+                            </AvatarFallback>
+                          </Avatar>
+                          
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm md:text-base">
+                              <span className="font-semibold">{notification.userName}</span>{' '}
+                              <span className="text-muted-foreground">
+                                {getNotificationText(notification)}
+                              </span>
+                            </p>
+                            <p className="text-xs md:text-sm text-muted-foreground mt-1">
+                              {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
+                            </p>
+                          </div>
 
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          {getNotificationIcon(notification.type)}
-                          {notification.postImage && (
-                            <img
-                              src={notification.postImage}
-                              alt="Post"
-                              className="w-12 h-12 md:w-14 md:h-14 object-cover rounded border-2 border-background"
-                            />
-                          )}
-                        </div>
-                      </Link>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {getNotificationIcon(notification.type)}
+                            {notification.postImage && (
+                              <img
+                                src={notification.postImage}
+                                alt="Post"
+                                className="w-12 h-12 md:w-14 md:h-14 object-cover rounded border-2 border-background"
+                              />
+                            )}
+                          </div>
+                        </Link>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 hover:bg-background"
+                          onClick={(e) => handleDismissNotification(notification.id, e)}
+                          title="Dismiss notification"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -394,43 +430,56 @@ const Notifications = () => {
                   <h2 className="text-sm font-semibold text-muted-foreground mb-3 px-2">Earlier</h2>
                   <div className="space-y-1 bg-card rounded-lg border">
                     {groupedNotifications.earlier.map((notification, index) => (
-                      <Link
+                      <div
                         key={notification.id}
-                        to={`/profile/${notification.userId}`}
-                        className={`flex items-center gap-3 p-3 md:p-4 hover:bg-muted transition-colors ${
+                        className={`relative group ${
                           index !== groupedNotifications.earlier.length - 1 ? 'border-b' : ''
                         }`}
                       >
-                        <Avatar className="h-12 w-12 md:h-14 md:w-14 ring-2 ring-background">
-                          <AvatarImage src={notification.userPhoto} />
-                          <AvatarFallback className="text-lg">
-                            {notification.userName?.[0]?.toUpperCase() || 'U'}
-                          </AvatarFallback>
-                        </Avatar>
-                        
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm md:text-base">
-                            <span className="font-semibold">{notification.userName}</span>{' '}
-                            <span className="text-muted-foreground">
-                              {getNotificationText(notification)}
-                            </span>
-                          </p>
-                          <p className="text-xs md:text-sm text-muted-foreground mt-1">
-                            {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
-                          </p>
-                        </div>
+                        <Link
+                          to={`/profile/${notification.userId}`}
+                          className="flex items-center gap-3 p-3 md:p-4 hover:bg-muted transition-colors"
+                        >
+                          <Avatar className="h-12 w-12 md:h-14 md:w-14 ring-2 ring-background">
+                            <AvatarImage src={notification.userPhoto} />
+                            <AvatarFallback className="text-lg">
+                              {notification.userName?.[0]?.toUpperCase() || 'U'}
+                            </AvatarFallback>
+                          </Avatar>
+                          
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm md:text-base">
+                              <span className="font-semibold">{notification.userName}</span>{' '}
+                              <span className="text-muted-foreground">
+                                {getNotificationText(notification)}
+                              </span>
+                            </p>
+                            <p className="text-xs md:text-sm text-muted-foreground mt-1">
+                              {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
+                            </p>
+                          </div>
 
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          {getNotificationIcon(notification.type)}
-                          {notification.postImage && (
-                            <img
-                              src={notification.postImage}
-                              alt="Post"
-                              className="w-12 h-12 md:w-14 md:h-14 object-cover rounded border-2 border-background"
-                            />
-                          )}
-                        </div>
-                      </Link>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {getNotificationIcon(notification.type)}
+                            {notification.postImage && (
+                              <img
+                                src={notification.postImage}
+                                alt="Post"
+                                className="w-12 h-12 md:w-14 md:h-14 object-cover rounded border-2 border-background"
+                              />
+                            )}
+                          </div>
+                        </Link>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 hover:bg-background"
+                          onClick={(e) => handleDismissNotification(notification.id, e)}
+                          title="Dismiss notification"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
                     ))}
                   </div>
                 </div>
