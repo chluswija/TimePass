@@ -5,11 +5,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import SidebarNavigation from '@/components/Layout/SidebarNavigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Share2, Edit3 } from 'lucide-react';
+import { Share2, Edit3, X } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import EditProfileDialog from '@/components/Profile/EditProfileDialog';
 import ShareProfileDialog from '@/components/Profile/ShareProfileDialog';
+import PostCard from '@/components/Post/PostCard';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 const Profile = () => {
   const { user } = useAuth();
@@ -26,8 +28,20 @@ const Profile = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'posts' | 'reels' | 'saved'>('posts');
+  const [selectedPost, setSelectedPost] = useState<any>(null);
+  const [isPostModalOpen, setIsPostModalOpen] = useState(false);
 
   const isOwnProfile = !userId || userId === user?.uid;
+
+  const handlePostClick = (post: any) => {
+    setSelectedPost(post);
+    setIsPostModalOpen(true);
+  };
+
+  const closePostModal = () => {
+    setIsPostModalOpen(false);
+    setSelectedPost(null);
+  };
 
   useEffect(() => {
     const targetUserId = userId || user?.uid;
@@ -421,7 +435,11 @@ const Profile = () => {
                 ) : (
                   <div className="grid grid-cols-3 gap-1 md:gap-4">
                     {posts.map((post) => (
-                      <div key={post.id} className="aspect-square bg-muted cursor-pointer hover:opacity-80 transition-opacity relative group">
+                      <div 
+                        key={post.id} 
+                        className="aspect-square bg-muted cursor-pointer hover:opacity-80 transition-opacity relative group"
+                        onClick={() => handlePostClick(post)}
+                      >
                         {post.mediaType === 'video' ? (
                           <video src={post.mediaUrl} className="w-full h-full object-cover" />
                         ) : (
@@ -494,7 +512,11 @@ const Profile = () => {
                 ) : (
                   <div className="grid grid-cols-3 gap-1 md:gap-4">
                     {savedPosts.map((post) => (
-                      <div key={post.id} className="aspect-square bg-muted cursor-pointer hover:opacity-80 transition-opacity relative group">
+                      <div 
+                        key={post.id} 
+                        className="aspect-square bg-muted cursor-pointer hover:opacity-80 transition-opacity relative group"
+                        onClick={() => handlePostClick(post)}
+                      >
                         {post.mediaType === 'video' ? (
                           <video src={post.mediaUrl} className="w-full h-full object-cover" />
                         ) : (
@@ -527,6 +549,30 @@ const Profile = () => {
             onClose={() => setIsShareDialogOpen(false)}
             user={displayUser}
           />
+
+          {/* Fullscreen Post Modal */}
+          <Dialog open={isPostModalOpen} onOpenChange={setIsPostModalOpen}>
+            <DialogContent className="max-w-5xl w-full h-[90vh] p-0 overflow-hidden">
+              <div className="relative w-full h-full flex items-center justify-center bg-black">
+                {/* Close Button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-4 right-4 z-50 text-white hover:bg-white/20"
+                  onClick={closePostModal}
+                >
+                  <X className="h-6 w-6" />
+                </Button>
+
+                {/* Post Content */}
+                {selectedPost && (
+                  <div className="w-full h-full overflow-auto">
+                    <PostCard post={selectedPost} />
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
         </main>
       </div>
     </SidebarNavigation>

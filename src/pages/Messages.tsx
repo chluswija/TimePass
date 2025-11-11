@@ -104,16 +104,29 @@ const Messages = () => {
                           {(foundUser.username || foundUser.displayName)?.[0]?.toUpperCase() || 'U'}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="flex-1">
-                        <p className="font-semibold">
-                          {foundUser.username || foundUser.displayName || 'User'}
-                        </p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold">
+                            {foundUser.username || foundUser.displayName || 'User'}
+                          </p>
+                          {foundUser.uid && (
+                            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                              ID: {foundUser.uid.substring(0, 8)}...
+                            </span>
+                          )}
+                        </div>
+                        {foundUser.email && (
+                          <p className="text-xs text-muted-foreground truncate">
+                            {foundUser.email}
+                          </p>
+                        )}
                         {foundUser.bio && (
-                          <p className="text-sm text-muted-foreground truncate">
+                          <p className="text-sm text-muted-foreground truncate mt-1">
                             {foundUser.bio}
                           </p>
                         )}
                       </div>
+                      <MessageCircle className="h-5 w-5 text-muted-foreground" />
                     </Link>
                   ))}
                 </div>

@@ -27,12 +27,12 @@ const CreatePost = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      // If story mode, only allow videos
-      if (isStoryMode && !selectedFile.type.startsWith('video')) {
+      // Story mode now accepts both images and videos
+      if (isStoryMode && !selectedFile.type.startsWith('video') && !selectedFile.type.startsWith('image')) {
         toast({
           variant: 'destructive',
           title: 'Invalid file type',
-          description: 'Stories can only be videos. Please select a video file.',
+          description: 'Stories can be images or videos. Please select a valid media file.',
         });
         return;
       }
@@ -111,7 +111,7 @@ const CreatePost = () => {
               <div className="space-y-4">
                 <input
                   type="file"
-                  accept={isStoryMode ? "video/*" : "image/*,video/*"}
+                  accept={isStoryMode ? "image/*,video/*" : "image/*,video/*"}
                   onChange={handleFileChange}
                   className="hidden"
                   id="file-upload"
@@ -139,9 +139,14 @@ const CreatePost = () => {
                       <Upload className="h-12 w-12 text-muted-foreground mb-3" />
                       <p className="text-sm text-muted-foreground">
                         {isStoryMode 
-                          ? 'Click to upload video for your story'
+                          ? 'Click to upload image or video for your story'
                           : 'Click to upload image or video'}
                       </p>
+                      {isStoryMode && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          ✨ Stories support both photos and videos
+                        </p>
+                      )}
                     </div>
                   )}
                 </label>

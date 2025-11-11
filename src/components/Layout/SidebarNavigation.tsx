@@ -1,5 +1,5 @@
-import { Home, Search, PlusSquare, Heart, User, Video, MessageCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Home, Search, PlusSquare, Heart, Video, MessageCircle, LogOut } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 import {
   Sidebar,
   SidebarContent,
@@ -9,81 +9,130 @@ import {
   SidebarMenuButton,
   SidebarProvider,
   SidebarInset,
+  SidebarFooter,
 } from '@/components/ui/sidebar';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import MobileBottomNav from './MobileBottomNav';
 import Header from './Header';
+import { useState, useEffect } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { cn } from '@/lib/utils';
 
 const SidebarNavigation: React.FC<React.PropsWithChildren> = ({ children }) => {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
+  const location = useLocation();
+  const [userProfile, setUserProfile] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user) {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          setUserProfile(userDoc.data());
+        }
+      }
+    };
+    fetchUserProfile();
+  }, [user]);
+
+  const isActive = (path: string) => location.pathname === path;
 
   return (
     <SidebarProvider>
-      <Sidebar className="hidden md:block">
-        <SidebarHeader>
-          <Link to="/" className="text-2xl font-bold block mb-4">
+      <Sidebar className="hidden md:flex md:flex-col border-r">
+        <SidebarHeader className="p-6">
+          <Link to="/" className="text-2xl font-bold tracking-tight hover:opacity-80 transition-opacity">
             Timepass
           </Link>
         </SidebarHeader>
-        <SidebarContent>
-          <SidebarMenu>
+        <SidebarContent className="flex-1 px-3">
+          <SidebarMenu className="space-y-1">
             <SidebarMenuItem>
-              <SidebarMenuButton asChild>
+              <SidebarMenuButton asChild className={cn(
+                "w-full justify-start gap-4 px-3 py-3 rounded-lg transition-all hover:bg-accent",
+                isActive('/') && "bg-accent font-semibold"
+              )}>
                 <Link to="/">
-                  <Home className="h-5 w-5 mr-2" /> Home
+                  <Home className={cn("h-6 w-6", isActive('/') && "fill-current")} />
+                  <span className="text-base">Home</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link to="/search">
-                  <Search className="h-5 w-5 mr-2" /> Search
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
+              <SidebarMenuButton asChild className={cn(
+                "w-full justify-start gap-4 px-3 py-3 rounded-lg transition-all hover:bg-accent",
+                isActive('/reels') && "bg-accent font-semibold"
+              )}>
                 <Link to="/reels">
-                  <Video className="h-5 w-5 mr-2" /> Reels
+                  <Video className="h-6 w-6" />
+                  <span className="text-base">Reels</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild>
+              <SidebarMenuButton asChild className={cn(
+                "w-full justify-start gap-4 px-3 py-3 rounded-lg transition-all hover:bg-accent",
+                isActive('/create') && "bg-accent font-semibold"
+              )}>
                 <Link to="/create">
-                  <PlusSquare className="h-5 w-5 mr-2" /> Create
+                  <PlusSquare className="h-6 w-6" />
+                  <span className="text-base">Create</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link to="/notifications">
-                  <Heart className="h-5 w-5 mr-2" /> Notifications
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
+              <SidebarMenuButton asChild className={cn(
+                "w-full justify-start gap-4 px-3 py-3 rounded-lg transition-all hover:bg-accent",
+                isActive('/messages') && "bg-accent font-semibold"
+              )}>
                 <Link to="/messages">
-                  <MessageCircle className="h-5 w-5 mr-2" /> Messages
+                  <MessageCircle className="h-6 w-6" />
+                  <span className="text-base">Messages</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link to="/profile">
-                  <User className="h-5 w-5 mr-2" /> Profile
+              <SidebarMenuButton asChild className={cn(
+                "w-full justify-start gap-4 px-3 py-3 rounded-lg transition-all hover:bg-accent",
+                isActive('/notifications') && "bg-accent font-semibold"
+              )}>
+                <Link to="/notifications">
+                  <Heart className={cn("h-6 w-6", isActive('/notifications') && "fill-current")} />
+                  <span className="text-base">Notifications</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild className={cn(
+                "w-full justify-start gap-4 px-3 py-3 rounded-lg transition-all hover:bg-accent",
+                isActive('/profile') && "bg-accent font-semibold"
+              )}>
+                <Link to="/profile" className="flex items-center gap-4">
+                  <Avatar className="h-6 w-6">
+                    <AvatarImage src={userProfile?.profilePicUrl || user?.photoURL || ''} />
+                    <AvatarFallback className="text-xs">
+                      {(userProfile?.username || user?.displayName)?.[0]?.toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-base">Profile</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
-        <div className="mt-auto p-4">
-          <Button variant="ghost" onClick={logout} className="w-full">
-            Logout
+        <SidebarFooter className="p-3 mt-auto border-t">
+          <Button 
+            variant="ghost" 
+            onClick={logout} 
+            className="w-full justify-start gap-4 px-3 py-3 rounded-lg hover:bg-accent text-base font-normal"
+          >
+            <LogOut className="h-6 w-6" />
+            <span>Logout</span>
           </Button>
-        </div>
+        </SidebarFooter>
       </Sidebar>
 
       {/* Content area that will align with the sidebar provider on desktop */}
