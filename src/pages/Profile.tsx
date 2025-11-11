@@ -56,22 +56,25 @@ const Profile = () => {
   }, [user, userId, isOwnProfile]);
 
   useEffect(() => {
-    if (!user || isOwnProfile) return;
+    if (!user) return;
 
     const targetUserId = userId || user.uid;
     
-    // Listen to follow status
-    const checkFollowStatus = async () => {
-      const followQuery = query(
-        collection(db, 'follows'),
-        where('followerId', '==', user.uid),
-        where('followingId', '==', targetUserId)
-      );
-      const followSnapshot = await getDocs(followQuery);
-      setIsFollowing(!followSnapshot.empty);
-    };
+    // Listen to follow status (only for other profiles)
+    if (!isOwnProfile) {
+      const checkFollowStatus = async () => {
+        const followQuery = query(
+          collection(db, 'follows'),
+          where('followerId', '==', user.uid),
+          where('followingId', '==', targetUserId)
+        );
+        const followSnapshot = await getDocs(followQuery);
+        setIsFollowing(!followSnapshot.empty);
+      };
+      checkFollowStatus();
+    }
 
-    // Listen to followers count
+    // Listen to followers count (for all profiles including own)
     const followersQuery = query(
       collection(db, 'follows'),
       where('followingId', '==', targetUserId)
@@ -80,7 +83,7 @@ const Profile = () => {
       setFollowersCount(snapshot.size);
     });
 
-    // Listen to following count
+    // Listen to following count (for all profiles including own)
     const followingQuery = query(
       collection(db, 'follows'),
       where('followerId', '==', targetUserId)
@@ -88,8 +91,6 @@ const Profile = () => {
     const unsubscribeFollowing = onSnapshot(followingQuery, (snapshot) => {
       setFollowingCount(snapshot.size);
     });
-
-    checkFollowStatus();
 
     return () => {
       unsubscribeFollowers();
