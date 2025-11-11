@@ -51,6 +51,16 @@ const Search = () => {
 
       setIsLoading(true);
       try {
+        // List of usernames/emails to exclude (previous accounts)
+        const excludedUsernames = [
+          'maha lakshmi cheekatla',
+          'mahalakshmi',
+          'maha',
+          'cheekatla',
+          'srinu',
+          'srinivas'
+        ];
+
         // Search for users only
         const usersRef = collection(db, 'users');
         const usersQuery = query(usersRef);
@@ -58,10 +68,22 @@ const Search = () => {
         
         const users = usersSnapshot.docs
           .map(doc => ({ id: doc.id, ...doc.data() }))
-          .filter((user: any) => 
-            user.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            user.email?.toLowerCase().includes(searchQuery.toLowerCase())
-          );
+          .filter((user: any) => {
+            // Check if username matches search query
+            const matchesSearch = 
+              user.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              user.displayName?.toLowerCase().includes(searchQuery.toLowerCase());
+            
+            // Check if user is not in excluded list
+            const isNotExcluded = !excludedUsernames.some(excluded => 
+              user.username?.toLowerCase().includes(excluded.toLowerCase()) ||
+              user.email?.toLowerCase().includes(excluded.toLowerCase()) ||
+              user.displayName?.toLowerCase().includes(excluded.toLowerCase())
+            );
+            
+            return matchesSearch && isNotExcluded;
+          });
         
         setSearchResults(users);
       } catch (error) {
