@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { deleteDoc, doc, query, collection, where, getDocs } from 'firebase/firestore';
+import { deleteDoc, doc, query, collection, where, getDocs, addDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertDialog,
@@ -46,6 +46,26 @@ const ReelCard = ({ reel, isActive }: ReelCardProps) => {
   const [isFollowing, setIsFollowing] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  // Check if already following
+  useEffect(() => {
+    const checkFollowStatus = async () => {
+      if (!user || !reel.authorId || user.uid === reel.authorId) return;
+      
+      try {
+        const followsQuery = query(
+          collection(db, 'follows'),
+          where('followerId', '==', user.uid),
+          where('followingId', '==', reel.authorId)
+        );
+        const followsSnapshot = await getDocs(followsQuery);
+        setIsFollowing(!followsSnapshot.empty);
+      } catch (error) {
+        console.error('Error checking follow status:', error);
+      }
+    };
+    checkFollowStatus();
+  }, [user, reel.authorId]);
+
   useEffect(() => {
     if (videoRef.current) {
       if (isActive) {
@@ -62,6 +82,39 @@ const ReelCard = ({ reel, isActive }: ReelCardProps) => {
 
   const handleSave = () => {
     setSaved(!saved);
+  };
+
+  const handleFollow = async () => {
+    if (!user || !reel.authorId) return;
+
+    try {
+      if (isFollowing) {
+        // Unfollow
+        const followsQuery = query(
+          collection(db, 'follows'),
+          where('followerId', '==', user.uid),
+          where('followingId', '==', reel.authorId)
+        );
+        const followsSnapshot = await getDocs(followsQuery);
+        followsSnapshot.forEach(async (docSnapshot) => {
+          await deleteDoc(docSnapshot.ref);
+        });
+        setIsFollowing(false);
+        toast({ title: 'Unfollowed successfully' });
+      } else {
+        // Follow
+        await addDoc(collection(db, 'follows'), {
+          followerId: user.uid,
+          followingId: reel.authorId,
+          timestamp: new Date().toISOString(),
+        });
+        setIsFollowing(true);
+        toast({ title: 'Following successfully' });
+      }
+    } catch (error) {
+      console.error('Error toggling follow:', error);
+      toast({ title: 'Error', description: 'Failed to update follow status', variant: 'destructive' });
+    }
   };
 
   const toggleMute = () => {
@@ -128,29 +181,29 @@ const ReelCard = ({ reel, isActive }: ReelCardProps) => {
       />
 
       {/* Overlay Gradient */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/70" />
 
-      {/* Back Button - Top Left */}
+      {/* Back Button - Top Left Corner - Standalone */}
       <Button
         variant="ghost"
         size="icon"
         onClick={() => navigate('/')}
-        className="absolute top-4 left-4 z-50 h-10 w-10 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors backdrop-blur-sm"
+        className="absolute top-6 left-6 z-50 h-12 w-12 bg-black/60 hover:bg-black/80 text-white rounded-full transition-all shadow-2xl backdrop-blur-md border border-white/20"
         title="Go back"
       >
-        <ArrowLeft className="h-5 w-5" />
+        <ArrowLeft className="h-6 w-6" />
       </Button>
 
-      {/* User Info - Top Center/Right */}
-      <div className="absolute top-4 left-20 right-4 flex items-center justify-between z-10">
+      {/* User Info Bar - Separated from Back Button */}
+      <div className="absolute top-6 left-24 right-6 flex items-center justify-between z-10 bg-black/30 backdrop-blur-md rounded-full px-4 py-2 shadow-xl border border-white/10">
         <div className="flex items-center gap-3">
-          <Avatar className="h-10 w-10 ring-2 ring-white/30">
+          <Avatar className="h-11 w-11 ring-2 ring-white/40 shadow-lg">
             <AvatarImage src={reel.author.profilePic} />
-            <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white">
+            <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white font-bold">
               {reel.author.username[0].toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          <span className="font-bold text-white text-base drop-shadow-lg">
+          <span className="font-bold text-white text-lg drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
             {reel.author.username}
           </span>
         </div>
@@ -158,14 +211,14 @@ const ReelCard = ({ reel, isActive }: ReelCardProps) => {
           {!isReelAuthor && (
             <Button 
               size="sm" 
-              onClick={() => setIsFollowing(!isFollowing)}
-              className={`h-8 px-4 font-semibold rounded-full shadow-lg transition-all ${
+              onClick={handleFollow}
+              className={`h-9 px-5 font-bold rounded-full shadow-xl transition-all transform hover:scale-105 ${
                 isFollowing 
-                  ? 'bg-white/20 text-white border border-white/30 hover:bg-white/30' 
-                  : 'bg-white text-black hover:bg-white/90'
+                  ? 'bg-white/20 text-white border-2 border-white/50 hover:bg-white/30' 
+                  : 'bg-gradient-to-r from-pink-500 to-purple-500 text-white hover:from-pink-600 hover:to-purple-600 border-none'
               }`}
             >
-              <UserPlus className="h-4 w-4 mr-1" />
+              <UserPlus className="h-4 w-4 mr-2" />
               {isFollowing ? 'Following' : 'Follow'}
             </Button>
           )}
