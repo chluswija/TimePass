@@ -66,36 +66,37 @@ const Chat = () => {
 
   // Listen to messages
   useEffect(() => {
-    if (!user || !userId) return;
+    if (!user || !userId) {
+      setLoading(false);
+      return;
+    }
 
-    const messagesQuery = query(
+    setLoading(false); // Remove loading state immediately
+
+    // Query for sent messages
+    const sentMessagesQuery = query(
       collection(db, 'messages'),
-      or(
-        and(
-          where('senderId', '==', user.uid),
-          where('receiverId', '==', userId)
-        ),
-        and(
-          where('senderId', '==', userId),
-          where('receiverId', '==', user.uid)
-        )
-      ),
+      where('senderId', '==', user.uid),
+      where('receiverId', '==', userId),
       orderBy('timestamp', 'asc')
     );
 
-    const unsubscribe = onSnapshot(messagesQuery, async (snapshot) => {
-      const messagesData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Message[];
-      setMessages(messagesData);
-      setLoading(false);
+    // Query for received messages
+    const receivedMessagesQuery = query(
+      collection(db, 'messages'),
+      where('senderId', '==', userId),
+      where('receiverId', '==', user.uid),
+      orderBy('timestamp', 'asc')
+    );
 
+    // Listen to both queries
+    const unsubscribeSent = onSnapshot(sentMessagesQuery, () => {
+      updateMessages();
+    });
+
+    const unsubscribeReceived = onSnapshot(receivedMessagesQuery, async (snapshot) => {
       // Mark received messages as read
-      const unreadMessages = snapshot.docs.filter(
-        doc => doc.data().receiverId === user.uid && !doc.data().read
-      );
-      
+      const unreadMessages = snapshot.docs.filter(doc => !doc.data().read);
       for (const msgDoc of unreadMessages) {
         try {
           await updateDoc(doc(db, 'messages', msgDoc.id), { read: true });
@@ -103,9 +104,41 @@ const Chat = () => {
           console.error('Error marking message as read:', error);
         }
       }
+      updateMessages();
     });
 
-    return () => unsubscribe();
+    // Function to fetch and combine all messages
+    const updateMessages = async () => {
+      try {
+        const [sentSnapshot, receivedSnapshot] = await Promise.all([
+          getDocs(sentMessagesQuery),
+          getDocs(receivedMessagesQuery)
+        ]);
+
+        const allMessages = [
+          ...sentSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })),
+          ...receivedSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+        ] as Message[];
+
+        // Sort by timestamp
+        allMessages.sort((a, b) => {
+          if (!a.timestamp || !b.timestamp) return 0;
+          return a.timestamp.toMillis() - b.timestamp.toMillis();
+        });
+
+        setMessages(allMessages);
+      } catch (error) {
+        console.error('Error fetching messages:', error);
+      }
+    };
+
+    // Initial load
+    updateMessages();
+
+    return () => {
+      unsubscribeSent();
+      unsubscribeReceived();
+    };
   }, [user, userId]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
