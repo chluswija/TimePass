@@ -102,17 +102,6 @@ const Reels = () => {
 
   return (
     <div className="relative h-screen">
-      {/* Back button - visible on all screen sizes */}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => navigate('/')}
-        className="absolute top-4 left-4 z-50 h-10 w-10 bg-black/40 hover:bg-black/60 text-white rounded-full transition-colors"
-        title="Go back to home"
-        aria-label="Go back to home"
-      >
-        <ChevronLeft className="h-6 w-6" />
-      </Button>
 
       {/* Create Reel Button - floating bottom right */}
       <Button

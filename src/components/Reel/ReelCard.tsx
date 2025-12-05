@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
-import { Heart, MessageCircle, Send, Bookmark, Volume2, VolumeX, Trash2 } from 'lucide-react';
+import { Heart, MessageCircle, Send, Bookmark, Volume2, VolumeX, Trash2, ArrowLeft, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { deleteDoc, doc, query, collection, where, getDocs } from 'firebase/firestore';
+import { useNavigate } from 'react-router-dom';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,10 +38,12 @@ interface ReelCardProps {
 const ReelCard = ({ reel, isActive }: ReelCardProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
   const [muted, setMuted] = useState(false); // Changed from true to false - audio enabled by default
   const [showDeleteButton, setShowDeleteButton] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -125,54 +128,76 @@ const ReelCard = ({ reel, isActive }: ReelCardProps) => {
       />
 
       {/* Overlay Gradient */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background/80" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60" />
 
-      {/* Top Bar */}
-      <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
-        <div className="flex items-center gap-2">
-          <Avatar className="h-8 w-8 border-2 border-primary-foreground">
+      {/* Back Button - Top Left */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => navigate('/')}
+        className="absolute top-4 left-4 z-50 h-10 w-10 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors backdrop-blur-sm"
+        title="Go back"
+      >
+        <ArrowLeft className="h-5 w-5" />
+      </Button>
+
+      {/* User Info - Top Center/Right */}
+      <div className="absolute top-4 left-20 right-4 flex items-center justify-between z-10">
+        <div className="flex items-center gap-3">
+          <Avatar className="h-10 w-10 ring-2 ring-white/30">
             <AvatarImage src={reel.author.profilePic} />
-            <AvatarFallback>{reel.author.username[0].toUpperCase()}</AvatarFallback>
+            <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white">
+              {reel.author.username[0].toUpperCase()}
+            </AvatarFallback>
           </Avatar>
-          <span className="font-semibold text-primary-foreground text-sm">
+          <span className="font-bold text-white text-base drop-shadow-lg">
             {reel.author.username}
           </span>
-          <Button 
-            size="sm" 
-            variant="outline" 
-            className="h-7 px-3 border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-background"
-          >
-            Follow
-          </Button>
         </div>
-        {isReelAuthor && showDeleteButton && (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8 text-destructive hover:text-destructive bg-background/80 hover:bg-background animate-in fade-in-0 zoom-in-95 duration-200"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Trash2 className="h-5 w-5" />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete Reel</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to delete this reel? This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteReel} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
+        <div className="flex items-center gap-2">
+          {!isReelAuthor && (
+            <Button 
+              size="sm" 
+              onClick={() => setIsFollowing(!isFollowing)}
+              className={`h-8 px-4 font-semibold rounded-full shadow-lg transition-all ${
+                isFollowing 
+                  ? 'bg-white/20 text-white border border-white/30 hover:bg-white/30' 
+                  : 'bg-white text-black hover:bg-white/90'
+              }`}
+            >
+              <UserPlus className="h-4 w-4 mr-1" />
+              {isFollowing ? 'Following' : 'Follow'}
+            </Button>
+          )}
+          {isReelAuthor && showDeleteButton && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8 text-destructive hover:text-destructive bg-background/80 hover:bg-background animate-in fade-in-0 zoom-in-95 duration-200"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Trash2 className="h-5 w-5" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Reel</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete this reel? This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteReel} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
       </div>
 
       {/* Side Actions */}

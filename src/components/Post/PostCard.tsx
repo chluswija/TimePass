@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Heart, MessageCircle, Send, Bookmark, Trash2 } from 'lucide-react';
+import { Heart, MessageCircle, Send, Bookmark, Trash2, Reply, Smile } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,7 +48,10 @@ const PostCard = ({ post }: PostCardProps) => {
   const [likesCount, setLikesCount] = useState(post.likes || 0);
   const [commentsData, setCommentsData] = useState<any[]>([]);
   const [commentText, setCommentText] = useState('');
+  const [replyingTo, setReplyingTo] = useState<{ id: string; username: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const emojis = ['❤️', '😂', '😮', '😢', '👍', '🔥', '🎉', '💯'];
   const [showDeleteButton, setShowDeleteButton] = useState(false);
 
   useEffect(() => {
@@ -136,15 +140,35 @@ const PostCard = ({ post }: PostCardProps) => {
 
     setIsSubmitting(true);
     try {
-      await addDoc(collection(db, 'comments'), {
+      const commentData: any = {
         postId: post.id,
         userId: user.uid,
         username: user.displayName || 'User',
         text: commentText,
         timestamp: new Date().toISOString(),
-      });
+      };
+
+      // If replying to someone
+      if (replyingTo) {
+        commentData.replyTo = replyingTo.id;
+        commentData.replyToUsername = replyingTo.username;
+        
+        // Create notification for the person being replied to
+        await addDoc(collection(db, 'commentReplies'), {
+          postId: post.id,
+          commentId: replyingTo.id,
+          userId: replyingTo.id, // The person being notified
+          replyUserId: user.uid,
+          replyUsername: user.displayName || 'User',
+          text: commentText,
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      await addDoc(collection(db, 'comments'), commentData);
       setCommentText('');
-      toast({ title: 'Comment added successfully' });
+      setReplyingTo(null);
+      toast({ title: replyingTo ? 'Reply added successfully' : 'Comment added successfully' });
     } catch (error) {
       console.error('Error adding comment:', error);
       toast({ title: 'Error', description: 'Failed to add comment', variant: 'destructive' });
@@ -357,10 +381,58 @@ const PostCard = ({ post }: PostCardProps) => {
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex-1">
                                 <span className="font-semibold text-sm">{comment.username}</span>
+                                {comment.replyToUsername && (
+                                  <span className="text-xs text-muted-foreground ml-1">
+                                    replying to @{comment.replyToUsername}
+                                  </span>
+                                )}
                                 <p className="text-sm mt-0.5">{comment.text}</p>
-                                <span className="text-xs text-muted-foreground mt-1 inline-block">
-                                  {formatDistanceToNow(new Date(comment.timestamp), { addSuffix: true })}
-                                </span>
+                                <div className="flex items-center gap-3 mt-1">
+                                  <span className="text-xs text-muted-foreground">
+                                    {formatDistanceToNow(new Date(comment.timestamp), { addSuffix: true })}
+                                  </span>
+                                  {user && comment.userId !== user.uid && (
+                                    <>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-auto p-0 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                                        onClick={() => setReplyingTo({ id: comment.userId, username: comment.username })}
+                                      >
+                                        <Reply className="h-3 w-3 mr-1" />
+                                        Reply
+                                      </Button>
+                                      <Popover>
+                                        <PopoverTrigger asChild>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-auto p-0 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                                          >
+                                            <Smile className="h-3 w-3 mr-1" />
+                                            React
+                                          </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-2">
+                                          <div className="flex gap-1">
+                                            {emojis.map((emoji) => (
+                                              <button
+                                                key={emoji}
+                                                onClick={() => {
+                                                  setCommentText(emoji);
+                                                  setReplyingTo({ id: comment.userId, username: comment.username });
+                                                }}
+                                                className="text-xl hover:scale-125 transition-transform p-1"
+                                              >
+                                                {emoji}
+                                              </button>
+                                            ))}
+                                          </div>
+                                        </PopoverContent>
+                                      </Popover>
+                                    </>
+                                  )}
+                                </div>
                               </div>
                               {user && comment.userId === user.uid && (
                                 <AlertDialog>
