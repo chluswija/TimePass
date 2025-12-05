@@ -426,6 +426,9 @@ const Notifications = () => {
                                 {getNotificationText(notification)}
                               </span>
                             </p>
+                            <p className="text-xs text-muted-foreground/70">
+                              ID: {notification.userId.substring(0, 8)}...
+                            </p>
                             <p className="text-xs md:text-sm text-muted-foreground mt-1">
                               {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
                             </p>
@@ -487,6 +490,9 @@ const Notifications = () => {
                                 {getNotificationText(notification)}
                               </span>
                             </p>
+                            <p className="text-xs text-muted-foreground/70">
+                              ID: {notification.userId.substring(0, 8)}...
+                            </p>
                             <p className="text-xs md:text-sm text-muted-foreground mt-1">
                               {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
                             </p>
@@ -547,6 +553,9 @@ const Notifications = () => {
                               <span className="text-muted-foreground">
                                 {getNotificationText(notification)}
                               </span>
+                            </p>
+                            <p className="text-xs text-muted-foreground/70">
+                              ID: {notification.userId.substring(0, 8)}...
                             </p>
                             <p className="text-xs md:text-sm text-muted-foreground mt-1">
                               {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
