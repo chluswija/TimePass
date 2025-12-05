@@ -71,73 +71,92 @@ const Chat = () => {
       return;
     }
 
-    setLoading(false); // Remove loading state immediately
+    let isMounted = true;
 
-    // Query for sent messages
-    const sentMessagesQuery = query(
-      collection(db, 'messages'),
-      where('senderId', '==', user.uid),
-      where('receiverId', '==', userId),
-      orderBy('timestamp', 'asc')
-    );
-
-    // Query for received messages
-    const receivedMessagesQuery = query(
-      collection(db, 'messages'),
-      where('senderId', '==', userId),
-      where('receiverId', '==', user.uid),
-      orderBy('timestamp', 'asc')
-    );
-
-    // Listen to both queries
-    const unsubscribeSent = onSnapshot(sentMessagesQuery, () => {
-      updateMessages();
-    });
-
-    const unsubscribeReceived = onSnapshot(receivedMessagesQuery, async (snapshot) => {
-      // Mark received messages as read
-      const unreadMessages = snapshot.docs.filter(doc => !doc.data().read);
-      for (const msgDoc of unreadMessages) {
-        try {
-          await updateDoc(doc(db, 'messages', msgDoc.id), { read: true });
-        } catch (error) {
-          console.error('Error marking message as read:', error);
-        }
-      }
-      updateMessages();
-    });
-
-    // Function to fetch and combine all messages
-    const updateMessages = async () => {
+    // Fetch all messages between the two users
+    const fetchMessages = async () => {
       try {
-        const [sentSnapshot, receivedSnapshot] = await Promise.all([
-          getDocs(sentMessagesQuery),
-          getDocs(receivedMessagesQuery)
-        ]);
-
-        const allMessages = [
-          ...sentSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })),
-          ...receivedSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-        ] as Message[];
+        const messagesRef = collection(db, 'messages');
+        
+        // Get all messages from both directions
+        const allMessagesSnapshot = await getDocs(messagesRef);
+        
+        const relevantMessages = allMessagesSnapshot.docs
+          .filter(doc => {
+            const data = doc.data();
+            return (
+              (data.senderId === user.uid && data.receiverId === userId) ||
+              (data.senderId === userId && data.receiverId === user.uid)
+            );
+          })
+          .map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          })) as Message[];
 
         // Sort by timestamp
-        allMessages.sort((a, b) => {
+        relevantMessages.sort((a, b) => {
           if (!a.timestamp || !b.timestamp) return 0;
           return a.timestamp.toMillis() - b.timestamp.toMillis();
         });
 
-        setMessages(allMessages);
+        if (isMounted) {
+          setMessages(relevantMessages);
+          setLoading(false);
+
+          // Mark unread messages as read
+          const unreadMessages = relevantMessages.filter(
+            msg => msg.receiverId === user.uid && !msg.read
+          );
+          
+          for (const msg of unreadMessages) {
+            try {
+              await updateDoc(doc(db, 'messages', msg.id), { read: true });
+            } catch (error) {
+              console.error('Error marking message as read:', error);
+            }
+          }
+        }
       } catch (error) {
         console.error('Error fetching messages:', error);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    // Initial load
-    updateMessages();
+    // Initial fetch
+    fetchMessages();
+
+    // Set up real-time listener
+    const messagesRef = collection(db, 'messages');
+    const unsubscribe = onSnapshot(messagesRef, (snapshot) => {
+      if (!isMounted) return;
+      
+      const relevantMessages = snapshot.docs
+        .filter(doc => {
+          const data = doc.data();
+          return (
+            (data.senderId === user.uid && data.receiverId === userId) ||
+            (data.senderId === userId && data.receiverId === user.uid)
+          );
+        })
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Message[];
+
+      relevantMessages.sort((a, b) => {
+        if (!a.timestamp || !b.timestamp) return 0;
+        return a.timestamp.toMillis() - b.timestamp.toMillis();
+      });
+
+      setMessages(relevantMessages);
+    });
 
     return () => {
-      unsubscribeSent();
-      unsubscribeReceived();
+      isMounted = false;
+      unsubscribe();
     };
   }, [user, userId]);
 
