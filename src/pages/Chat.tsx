@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import SidebarNavigation from '@/components/Layout/SidebarNavigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Send, ArrowLeft } from 'lucide-react';
+import { Send, ArrowLeft, Check, CheckCheck } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
@@ -17,10 +17,12 @@ import {
   getDoc,
   doc,
   or,
-  and
+  and,
+  updateDoc,
+  getDocs
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 
 interface Message {
   id: string;
@@ -28,6 +30,7 @@ interface Message {
   receiverId: string;
   text: string;
   timestamp: any;
+  read?: boolean;
 }
 
 const Chat = () => {
@@ -80,13 +83,26 @@ const Chat = () => {
       orderBy('timestamp', 'asc')
     );
 
-    const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
+    const unsubscribe = onSnapshot(messagesQuery, async (snapshot) => {
       const messagesData = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as Message[];
       setMessages(messagesData);
       setLoading(false);
+
+      // Mark received messages as read
+      const unreadMessages = snapshot.docs.filter(
+        doc => doc.data().receiverId === user.uid && !doc.data().read
+      );
+      
+      for (const msgDoc of unreadMessages) {
+        try {
+          await updateDoc(doc(db, 'messages', msgDoc.id), { read: true });
+        } catch (error) {
+          console.error('Error marking message as read:', error);
+        }
+      }
     });
 
     return () => unsubscribe();
@@ -102,6 +118,7 @@ const Chat = () => {
         receiverId: userId,
         text: newMessage.trim(),
         timestamp: serverTimestamp(),
+        read: false,
       });
       setNewMessage('');
     } catch (error) {
@@ -136,11 +153,9 @@ const Chat = () => {
                     <h2 className="font-semibold">
                       {otherUser.username || otherUser.displayName || 'User'}
                     </h2>
-                    {otherUser.bio && (
-                      <p className="text-xs text-muted-foreground truncate">
-                        {otherUser.bio}
-                      </p>
-                    )}
+                    <p className="text-xs text-muted-foreground/70 font-mono">
+                      ID: {userId}
+                    </p>
                   </div>
                 </>
               )}
@@ -163,35 +178,57 @@ const Chat = () => {
                 </p>
               </div>
             ) : (
-              <div className="space-y-4 pb-4">
-                {messages.map((message) => {
+              <div className="space-y-2 pb-4">
+                {messages.map((message, index) => {
                   const isMyMessage = message.senderId === user?.uid;
+                  const showDateSeparator = index === 0 || 
+                    (message.timestamp && messages[index - 1]?.timestamp && 
+                     format(message.timestamp.toDate(), 'yyyy-MM-dd') !== 
+                     format(messages[index - 1].timestamp.toDate(), 'yyyy-MM-dd'));
+                  
                   return (
-                    <div
-                      key={message.id}
-                      className={`flex ${isMyMessage ? 'justify-end' : 'justify-start'}`}
-                    >
+                    <div key={message.id}>
+                      {showDateSeparator && message.timestamp && (
+                        <div className="flex justify-center my-4">
+                          <span className="text-xs bg-muted px-3 py-1 rounded-full text-muted-foreground">
+                            {format(message.timestamp.toDate(), 'MMMM dd, yyyy')}
+                          </span>
+                        </div>
+                      )}
                       <div
-                        className={`max-w-[70%] rounded-2xl px-4 py-2 ${
-                          isMyMessage
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted'
-                        }`}
+                        className={`flex ${isMyMessage ? 'justify-end' : 'justify-start'}`}
                       >
-                        <p className="text-sm break-words">{message.text}</p>
-                        {message.timestamp && (
-                          <p
-                            className={`text-xs mt-1 ${
-                              isMyMessage
-                                ? 'text-primary-foreground/70'
-                                : 'text-muted-foreground'
-                            }`}
-                          >
-                            {formatDistanceToNow(message.timestamp.toDate(), {
-                              addSuffix: true,
-                            })}
-                          </p>
-                        )}
+                        <div
+                          className={`max-w-[75%] rounded-lg px-3 py-2 shadow-sm ${
+                            isMyMessage
+                              ? 'bg-[#005c4b] text-white rounded-tr-none'
+                              : 'bg-muted rounded-tl-none'
+                          }`}
+                        >
+                          <p className="text-[15px] break-words leading-relaxed">{message.text}</p>
+                          <div className="flex items-center justify-end gap-1 mt-1">
+                            {message.timestamp && (
+                              <span
+                                className={`text-[11px] ${
+                                  isMyMessage
+                                    ? 'text-white/70'
+                                    : 'text-muted-foreground'
+                                }`}
+                              >
+                                {format(message.timestamp.toDate(), 'HH:mm')}
+                              </span>
+                            )}
+                            {isMyMessage && (
+                              <span className="ml-1">
+                                {message.read ? (
+                                  <CheckCheck className="h-4 w-4 text-blue-400" />
+                                ) : (
+                                  <Check className="h-4 w-4 text-white/70" />
+                                )}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   );
