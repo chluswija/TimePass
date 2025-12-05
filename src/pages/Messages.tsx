@@ -69,57 +69,80 @@ const Messages = () => {
   useEffect(() => {
     if (!user) return;
 
-    const messagesQuery = query(
-      collection(db, 'messages'),
-      or(
-        where('senderId', '==', user.uid),
-        where('receiverId', '==', user.uid)
-      ),
-      orderBy('timestamp', 'desc'),
-      limit(50)
-    );
-
-    const unsubscribe = onSnapshot(messagesQuery, async (snapshot) => {
-      const messagesList = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as any[];
-
-      // Group messages by conversation partner
-      const conversationsMap = new Map();
-      
-      for (const msg of messagesList) {
-        const partnerId = msg.senderId === user.uid ? msg.receiverId : msg.senderId;
+    const loadConversations = async () => {
+      try {
+        // Get all messages
+        const messagesSnapshot = await getDocs(collection(db, 'messages'));
         
-        if (!conversationsMap.has(partnerId)) {
-          // Fetch partner's user data
-          try {
-            const userDoc = await getDoc(doc(db, 'users', partnerId));
-            const userData = userDoc.exists() ? userDoc.data() : {};
-            
-            conversationsMap.set(partnerId, {
-              id: partnerId,
-              partnerId,
-              name: userData.username || userData.displayName || 'User',
-              profilePic: userData.profilePicUrl || userData.photoURL,
-              lastMessage: msg.text,
-              timestamp: msg.timestamp,
-              unread: msg.senderId !== user.uid && !msg.read,
-            });
-          } catch (error) {
-            console.error('Error fetching user data:', error);
+        // Filter messages for current user
+        const userMessages = messagesSnapshot.docs
+          .map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }))
+          .filter((msg: any) => 
+            msg.senderId === user.uid || msg.receiverId === user.uid
+          ) as any[];
+
+        // Group messages by conversation partner
+        const conversationsMap = new Map();
+        
+        for (const msg of userMessages) {
+          const partnerId = msg.senderId === user.uid ? msg.receiverId : msg.senderId;
+          
+          if (!conversationsMap.has(partnerId)) {
+            // Fetch partner's user data
+            try {
+              const userDoc = await getDoc(doc(db, 'users', partnerId));
+              const userData = userDoc.exists() ? userDoc.data() : {};
+              
+              conversationsMap.set(partnerId, {
+                id: partnerId,
+                partnerId,
+                name: userData.username || userData.displayName || 'User',
+                profilePic: userData.profilePicUrl || userData.photoURL,
+                lastMessage: msg.text,
+                timestamp: msg.timestamp,
+                unread: msg.senderId !== user.uid && !msg.read,
+              });
+            } catch (error) {
+              console.error('Error fetching user data:', error);
+            }
+          } else {
+            // Update with latest message if this one is newer
+            const existing = conversationsMap.get(partnerId);
+            if (msg.timestamp && existing.timestamp && 
+                msg.timestamp.toMillis() > existing.timestamp.toMillis()) {
+              conversationsMap.set(partnerId, {
+                ...existing,
+                lastMessage: msg.text,
+                timestamp: msg.timestamp,
+                unread: msg.senderId !== user.uid && !msg.read,
+              });
+            }
           }
         }
-      }
 
-      const conversationsArray = Array.from(conversationsMap.values())
-        .sort((a, b) => {
-          if (!a.timestamp || !b.timestamp) return 0;
-          return b.timestamp.toMillis() - a.timestamp.toMillis();
-        });
-      
-      setConversations(conversationsArray);
-      setLoadingConversations(false);
+        const conversationsArray = Array.from(conversationsMap.values())
+          .sort((a, b) => {
+            if (!a.timestamp || !b.timestamp) return 0;
+            return b.timestamp.toMillis() - a.timestamp.toMillis();
+          });
+        
+        setConversations(conversationsArray);
+        setLoadingConversations(false);
+      } catch (error) {
+        console.error('Error loading conversations:', error);
+        setLoadingConversations(false);
+      }
+    };
+
+    // Initial load
+    loadConversations();
+
+    // Set up real-time listener
+    const unsubscribe = onSnapshot(collection(db, 'messages'), () => {
+      loadConversations();
     });
 
     return () => unsubscribe();
