@@ -313,15 +313,15 @@ const Notifications = () => {
   const getNotificationText = (notification: Notification) => {
     switch (notification.type) {
       case 'like':
-        return 'liked your post';
+        return `ID: ${notification.userId}`;
       case 'comment':
-        return `commented: ${notification.commentText}`;
+        return `ID: ${notification.userId}`;
       case 'follow':
-        return 'started following you';
+        return `ID: ${notification.userId}`;
       case 'login':
-        return 'is now online';
+        return `ID: ${notification.userId}`;
       default:
-        return '';
+        return `ID: ${notification.userId}`;
     }
   };
 
@@ -485,13 +485,10 @@ const Notifications = () => {
                           
                           <div className="flex-1 min-w-0">
                             <p className="text-sm md:text-base">
-                              <span className="font-semibold">{notification.userName}</span>{' '}
-                              <span className="text-muted-foreground">
-                                {getNotificationText(notification)}
-                              </span>
+                              <span className="font-semibold">{notification.userName}</span>
                             </p>
-                            <p className="text-xs text-muted-foreground/70">
-                              ID: {notification.userId.substring(0, 8)}...
+                            <p className="text-xs text-muted-foreground/80 mt-0.5">
+                              {getNotificationText(notification)}
                             </p>
                             <p className="text-xs md:text-sm text-muted-foreground mt-1">
                               {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
@@ -549,13 +546,10 @@ const Notifications = () => {
                           
                           <div className="flex-1 min-w-0">
                             <p className="text-sm md:text-base">
-                              <span className="font-semibold">{notification.userName}</span>{' '}
-                              <span className="text-muted-foreground">
-                                {getNotificationText(notification)}
-                              </span>
+                              <span className="font-semibold">{notification.userName}</span>
                             </p>
-                            <p className="text-xs text-muted-foreground/70">
-                              ID: {notification.userId.substring(0, 8)}...
+                            <p className="text-xs text-muted-foreground/80 mt-0.5">
+                              {getNotificationText(notification)}
                             </p>
                             <p className="text-xs md:text-sm text-muted-foreground mt-1">
                               {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
