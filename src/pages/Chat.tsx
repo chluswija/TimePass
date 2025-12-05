@@ -153,9 +153,6 @@ const Chat = () => {
                     <h2 className="font-semibold">
                       {otherUser.username || otherUser.displayName || 'User'}
                     </h2>
-                    <p className="text-xs text-muted-foreground/70 font-mono">
-                      ID: {userId}
-                    </p>
                   </div>
                 </>
               )}

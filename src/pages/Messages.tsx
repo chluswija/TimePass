@@ -191,9 +191,6 @@ const Messages = () => {
                           <p className="font-semibold">
                             {foundUser.username || foundUser.displayName || 'User'}
                           </p>
-                          <p className="text-xs text-muted-foreground/80 mt-0.5 font-mono">
-                            ID: {chatUserId}
-                          </p>
                           {foundUser.email && (
                             <p className="text-xs text-muted-foreground truncate mt-1">
                               {foundUser.email}
@@ -247,12 +244,7 @@ const Messages = () => {
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold">{conversation.name}</p>
-                        <p className="text-xs text-muted-foreground/70 font-mono truncate">
-                          ID: {conversation.partnerId}
-                        </p>
-                      </div>
+                      <p className="font-semibold">{conversation.name}</p>
                       {conversation.timestamp && (
                         <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">
                           {formatDistanceToNow(conversation.timestamp.toDate(), { addSuffix: true })}
