@@ -30,30 +30,34 @@ const Messages = () => {
       setIsSearching(true);
       try {
         const usersRef = collection(db, 'users');
-        const usersQuery = query(usersRef);
-        const usersSnapshot = await getDocs(usersQuery);
+        const usersSnapshot = await getDocs(usersRef);
         
         const users = usersSnapshot.docs
           .map(doc => ({ 
             id: doc.id, 
-            uid: doc.id, // Ensure uid is set to document ID
+            uid: doc.id,
             ...doc.data() 
           }))
           .filter((foundUser: any) => {
-            // Filter out current user and match search query
-            const userId = foundUser.uid || foundUser.id;
-            const isNotCurrentUser = userId !== user?.uid;
-            const matchesSearch = 
-              foundUser.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              foundUser.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              foundUser.email?.toLowerCase().includes(searchQuery.toLowerCase());
+            if (!user) return false;
             
-            return isNotCurrentUser && matchesSearch;
+            const userId = foundUser.uid || foundUser.id;
+            const isNotCurrentUser = userId !== user.uid;
+            
+            const searchLower = searchQuery.toLowerCase();
+            const matchesUsername = foundUser.username?.toLowerCase().includes(searchLower);
+            const matchesDisplayName = foundUser.displayName?.toLowerCase().includes(searchLower);
+            const matchesEmail = foundUser.email?.toLowerCase().includes(searchLower);
+            const matchesUserId = userId?.toLowerCase().includes(searchLower);
+            
+            return isNotCurrentUser && (matchesUsername || matchesDisplayName || matchesEmail || matchesUserId);
           });
         
         setSearchResults(users);
+        setIsSearching(false);
       } catch (error) {
         console.error('Error searching users:', error);
+        setIsSearching(false);
       }
     };
 
