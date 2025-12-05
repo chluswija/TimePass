@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import SidebarNavigation from '@/components/Layout/SidebarNavigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { collection, query, where, orderBy, onSnapshot, limit, getDoc, doc } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, limit, getDoc, doc, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Link } from 'react-router-dom';
@@ -26,11 +26,12 @@ const Notifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [dismissedNotifications, setDismissedNotifications] = useState<Set<string>>(new Set());
+  const [userCache, setUserCache] = useState<Map<string, any>>(new Map());
+  const [postCache, setPostCache] = useState<Map<string, any>>(new Map());
 
   useEffect(() => {
     if (!user) return;
 
-    const notificationsData: Notification[] = [];
     let unsubscribeLikes: (() => void) | undefined;
     let unsubscribeComments: (() => void) | undefined;
     let unsubscribeFollows: (() => void) | undefined;
@@ -38,6 +39,14 @@ const Notifications = () => {
 
     const setupListeners = async () => {
       try {
+        // Pre-fetch user's posts for faster lookup
+        const userPostsQuery = query(
+          collection(db, 'posts'),
+          where('authorId', '==', user.uid)
+        );
+        const userPostsSnapshot = await getDocs(userPostsQuery);
+        const userPostIds = new Set(userPostsSnapshot.docs.map(doc => doc.id));
+
         // Listen to login activities
         const loginActivitiesQuery = query(
           collection(db, 'loginActivities'),
@@ -48,11 +57,28 @@ const Notifications = () => {
         
         unsubscribeLoginActivities = onSnapshot(loginActivitiesQuery, async (snapshot) => {
           const loginNotifications: Notification[] = [];
+          const userIds = new Set<string>();
           
-          for (const loginDoc of snapshot.docs) {
+          snapshot.docs.forEach(loginDoc => {
             const loginData = loginDoc.data();
-            const userDoc = await getDoc(doc(db, 'users', loginData.actorId));
-            const userData = userDoc.exists() ? userDoc.data() : {};
+            userIds.add(loginData.actorId);
+          });
+
+          // Batch fetch all users at once
+          await Promise.all(
+            Array.from(userIds).map(async (userId) => {
+              if (!userCache.has(userId)) {
+                const userDoc = await getDoc(doc(db, 'users', userId));
+                if (userDoc.exists()) {
+                  setUserCache(prev => new Map(prev).set(userId, userDoc.data()));
+                }
+              }
+            })
+          );
+          
+          snapshot.docs.forEach(loginDoc => {
+            const loginData = loginDoc.data();
+            const userData = userCache.get(loginData.actorId) || {};
             
             loginNotifications.push({
               id: loginDoc.id,
@@ -62,7 +88,7 @@ const Notifications = () => {
               userName: loginData.actorUsername || userData.username || userData.displayName || 'Someone',
               userPhoto: userData.profilePicUrl || userData.photoURL
             });
-          }
+          });
           
           updateNotifications(loginNotifications, 'logins');
         });
@@ -75,29 +101,55 @@ const Notifications = () => {
         );
         
         unsubscribeLikes = onSnapshot(likesQuery, async (snapshot) => {
-          const likeNotifications: Notification[] = [];
+          const relevantLikes = snapshot.docs.filter(
+            doc => userPostIds.has(doc.data().postId) && doc.data().userId !== user.uid
+          );
+
+          const userIds = new Set<string>();
+          const postIds = new Set<string>();
           
-          for (const likeDoc of snapshot.docs) {
+          relevantLikes.forEach(likeDoc => {
             const likeData = likeDoc.data();
+            userIds.add(likeData.userId);
+            postIds.add(likeData.postId);
+          });
+
+          // Batch fetch all users and posts
+          await Promise.all([
+            ...Array.from(userIds).map(async (userId) => {
+              if (!userCache.has(userId)) {
+                const userDoc = await getDoc(doc(db, 'users', userId));
+                if (userDoc.exists()) {
+                  setUserCache(prev => new Map(prev).set(userId, userDoc.data()));
+                }
+              }
+            }),
+            ...Array.from(postIds).map(async (postId) => {
+              if (!postCache.has(postId)) {
+                const postDoc = await getDoc(doc(db, 'posts', postId));
+                if (postDoc.exists()) {
+                  setPostCache(prev => new Map(prev).set(postId, postDoc.data()));
+                }
+              }
+            })
+          ]);
+
+          const likeNotifications: Notification[] = relevantLikes.map(likeDoc => {
+            const likeData = likeDoc.data();
+            const userData = userCache.get(likeData.userId) || {};
+            const postData = postCache.get(likeData.postId) || {};
             
-            // Check if this like is on current user's post
-            const postDoc = await getDoc(doc(db, 'posts', likeData.postId));
-            if (postDoc.exists() && postDoc.data().authorId === user.uid && likeData.userId !== user.uid) {
-              const userDoc = await getDoc(doc(db, 'users', likeData.userId));
-              const userData = userDoc.exists() ? userDoc.data() : {};
-              
-              likeNotifications.push({
-                id: likeDoc.id,
-                type: 'like',
-                userId: likeData.userId,
-                postId: likeData.postId,
-                timestamp: likeData.timestamp,
-                userName: userData.username || userData.displayName || 'Someone',
-                userPhoto: userData.profilePicUrl || userData.photoURL,
-                postImage: postDoc.data().mediaUrl
-              });
-            }
-          }
+            return {
+              id: likeDoc.id,
+              type: 'like',
+              userId: likeData.userId,
+              postId: likeData.postId,
+              timestamp: likeData.timestamp,
+              userName: userData.username || userData.displayName || 'Someone',
+              userPhoto: userData.profilePicUrl || userData.photoURL,
+              postImage: postData.mediaUrl
+            };
+          });
           
           updateNotifications(likeNotifications, 'likes');
         });
@@ -110,30 +162,56 @@ const Notifications = () => {
         );
         
         unsubscribeComments = onSnapshot(commentsQuery, async (snapshot) => {
-          const commentNotifications: Notification[] = [];
+          const relevantComments = snapshot.docs.filter(
+            doc => userPostIds.has(doc.data().postId) && doc.data().userId !== user.uid
+          );
+
+          const userIds = new Set<string>();
+          const postIds = new Set<string>();
           
-          for (const commentDoc of snapshot.docs) {
+          relevantComments.forEach(commentDoc => {
             const commentData = commentDoc.data();
+            userIds.add(commentData.userId);
+            postIds.add(commentData.postId);
+          });
+
+          // Batch fetch all users and posts
+          await Promise.all([
+            ...Array.from(userIds).map(async (userId) => {
+              if (!userCache.has(userId)) {
+                const userDoc = await getDoc(doc(db, 'users', userId));
+                if (userDoc.exists()) {
+                  setUserCache(prev => new Map(prev).set(userId, userDoc.data()));
+                }
+              }
+            }),
+            ...Array.from(postIds).map(async (postId) => {
+              if (!postCache.has(postId)) {
+                const postDoc = await getDoc(doc(db, 'posts', postId));
+                if (postDoc.exists()) {
+                  setPostCache(prev => new Map(prev).set(postId, postDoc.data()));
+                }
+              }
+            })
+          ]);
+
+          const commentNotifications: Notification[] = relevantComments.map(commentDoc => {
+            const commentData = commentDoc.data();
+            const userData = userCache.get(commentData.userId) || {};
+            const postData = postCache.get(commentData.postId) || {};
             
-            // Check if this comment is on current user's post
-            const postDoc = await getDoc(doc(db, 'posts', commentData.postId));
-            if (postDoc.exists() && postDoc.data().authorId === user.uid && commentData.userId !== user.uid) {
-              const userDoc = await getDoc(doc(db, 'users', commentData.userId));
-              const userData = userDoc.exists() ? userDoc.data() : {};
-              
-              commentNotifications.push({
-                id: commentDoc.id,
-                type: 'comment',
-                userId: commentData.userId,
-                postId: commentData.postId,
-                timestamp: commentData.timestamp,
-                userName: userData.username || userData.displayName || 'Someone',
-                userPhoto: userData.profilePicUrl || userData.photoURL,
-                commentText: commentData.text,
-                postImage: postDoc.data().mediaUrl
-              });
-            }
-          }
+            return {
+              id: commentDoc.id,
+              type: 'comment',
+              userId: commentData.userId,
+              postId: commentData.postId,
+              timestamp: commentData.timestamp,
+              userName: userData.username || userData.displayName || 'Someone',
+              userPhoto: userData.profilePicUrl || userData.photoURL,
+              commentText: commentData.text,
+              postImage: postData.mediaUrl
+            };
+          });
           
           updateNotifications(commentNotifications, 'comments');
         });
@@ -147,22 +225,38 @@ const Notifications = () => {
         );
         
         unsubscribeFollows = onSnapshot(followsQuery, async (snapshot) => {
-          const followNotifications: Notification[] = [];
+          const userIds = new Set<string>();
           
-          for (const followDoc of snapshot.docs) {
+          snapshot.docs.forEach(followDoc => {
             const followData = followDoc.data();
-            const userDoc = await getDoc(doc(db, 'users', followData.followerId));
-            const userData = userDoc.exists() ? userDoc.data() : {};
+            userIds.add(followData.followerId);
+          });
+
+          // Batch fetch all users
+          await Promise.all(
+            Array.from(userIds).map(async (userId) => {
+              if (!userCache.has(userId)) {
+                const userDoc = await getDoc(doc(db, 'users', userId));
+                if (userDoc.exists()) {
+                  setUserCache(prev => new Map(prev).set(userId, userDoc.data()));
+                }
+              }
+            })
+          );
+
+          const followNotifications: Notification[] = snapshot.docs.map(followDoc => {
+            const followData = followDoc.data();
+            const userData = userCache.get(followData.followerId) || {};
             
-            followNotifications.push({
+            return {
               id: followDoc.id,
               type: 'follow',
               userId: followData.followerId,
               timestamp: followData.timestamp,
               userName: userData.username || userData.displayName || 'Someone',
               userPhoto: userData.profilePicUrl || userData.photoURL
-            });
-          }
+            };
+          });
           
           updateNotifications(followNotifications, 'follows');
         });
