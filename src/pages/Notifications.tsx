@@ -311,19 +311,7 @@ const Notifications = () => {
   };
 
   const getNotificationText = (notification: Notification) => {
-    const userId = notification.userId;
-    switch (notification.type) {
-      case 'like':
-        return { action: 'liked your post', userId };
-      case 'comment':
-        return { action: `commented: "${notification.commentText}"`, userId };
-      case 'follow':
-        return { action: 'started following you', userId };
-      case 'login':
-        return { action: 'is now online', userId };
-      default:
-        return { action: 'interacted with you', userId };
-    }
+    return notification.userId;
   };
 
   // Group notifications by date
@@ -421,11 +409,11 @@ const Notifications = () => {
                           </Avatar>
                           
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm md:text-base">
-                              <span className="font-semibold">{notification.userName}</span>{' '}
-                              <span className="text-muted-foreground">
-                                {getNotificationText(notification).action}
-                              </span>
+                            <p className="text-sm md:text-base font-semibold">
+                              {notification.userName}
+                            </p>
+                            <p className="text-xs text-muted-foreground/80 font-mono mt-1">
+                              ID: {getNotificationText(notification)}
                             </p>
                             <p className="text-xs md:text-sm text-muted-foreground mt-1">
                               {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
@@ -482,11 +470,11 @@ const Notifications = () => {
                           </Avatar>
                           
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm md:text-base">
-                              <span className="font-semibold">{notification.userName}</span>{' '}
-                              <span className="text-muted-foreground">
-                                {getNotificationText(notification).action}
-                              </span>
+                            <p className="text-sm md:text-base font-semibold">
+                              {notification.userName}
+                            </p>
+                            <p className="text-xs text-muted-foreground/80 font-mono mt-1">
+                              ID: {getNotificationText(notification)}
                             </p>
                             <p className="text-xs md:text-sm text-muted-foreground mt-1">
                               {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
@@ -543,11 +531,11 @@ const Notifications = () => {
                           </Avatar>
                           
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm md:text-base">
-                              <span className="font-semibold">{notification.userName}</span>{' '}
-                              <span className="text-muted-foreground">
-                                {getNotificationText(notification).action}
-                              </span>
+                            <p className="text-sm md:text-base font-semibold">
+                              {notification.userName}
+                            </p>
+                            <p className="text-xs text-muted-foreground/80 font-mono mt-1">
+                              ID: {getNotificationText(notification)}
                             </p>
                             <p className="text-xs md:text-sm text-muted-foreground mt-1">
                               {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
