@@ -311,17 +311,18 @@ const Notifications = () => {
   };
 
   const getNotificationText = (notification: Notification) => {
+    const userId = notification.userId;
     switch (notification.type) {
       case 'like':
-        return `ID: ${notification.userId}`;
+        return { action: 'liked your post', userId };
       case 'comment':
-        return `ID: ${notification.userId}`;
+        return { action: `commented: "${notification.commentText}"`, userId };
       case 'follow':
-        return `ID: ${notification.userId}`;
+        return { action: 'started following you', userId };
       case 'login':
-        return `ID: ${notification.userId}`;
+        return { action: 'is now online', userId };
       default:
-        return `ID: ${notification.userId}`;
+        return { action: 'interacted with you', userId };
     }
   };
 
@@ -420,18 +421,24 @@ const Notifications = () => {
                           </Avatar>
                           
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm md:text-base">
-                              <span className="font-semibold">{notification.userName}</span>{' '}
-                              <span className="text-muted-foreground">
-                                {getNotificationText(notification)}
-                              </span>
-                            </p>
-                            <p className="text-xs text-muted-foreground/70">
-                              ID: {notification.userId.substring(0, 8)}...
-                            </p>
-                            <p className="text-xs md:text-sm text-muted-foreground mt-1">
-                              {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
-                            </p>
+                            <div className="flex items-start gap-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm md:text-base">
+                                  <span className="font-semibold">{notification.userName}</span>{' '}
+                                  <span className="text-muted-foreground">
+                                    {getNotificationText(notification).action}
+                                  </span>
+                                </p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className="text-xs text-muted-foreground/70 font-mono bg-muted/50 px-2 py-0.5 rounded">
+                                    ID: {getNotificationText(notification).userId}
+                                  </span>
+                                </div>
+                                <p className="text-xs md:text-sm text-muted-foreground mt-1.5">
+                                  {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
+                                </p>
+                              </div>
+                            </div>
                           </div>
 
                           <div className="flex items-center gap-2 flex-shrink-0">
@@ -484,15 +491,24 @@ const Notifications = () => {
                           </Avatar>
                           
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm md:text-base">
-                              <span className="font-semibold">{notification.userName}</span>
-                            </p>
-                            <p className="text-xs text-muted-foreground/80 mt-0.5">
-                              {getNotificationText(notification)}
-                            </p>
-                            <p className="text-xs md:text-sm text-muted-foreground mt-1">
-                              {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
-                            </p>
+                            <div className="flex items-start gap-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm md:text-base">
+                                  <span className="font-semibold">{notification.userName}</span>{' '}
+                                  <span className="text-muted-foreground">
+                                    {getNotificationText(notification).action}
+                                  </span>
+                                </p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className="text-xs text-muted-foreground/70 font-mono bg-muted/50 px-2 py-0.5 rounded">
+                                    ID: {getNotificationText(notification).userId}
+                                  </span>
+                                </div>
+                                <p className="text-xs md:text-sm text-muted-foreground mt-1.5">
+                                  {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
+                                </p>
+                              </div>
+                            </div>
                           </div>
 
                           <div className="flex items-center gap-2 flex-shrink-0">
@@ -545,15 +561,24 @@ const Notifications = () => {
                           </Avatar>
                           
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm md:text-base">
-                              <span className="font-semibold">{notification.userName}</span>
-                            </p>
-                            <p className="text-xs text-muted-foreground/80 mt-0.5">
-                              {getNotificationText(notification)}
-                            </p>
-                            <p className="text-xs md:text-sm text-muted-foreground mt-1">
-                              {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
-                            </p>
+                            <div className="flex items-start gap-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm md:text-base">
+                                  <span className="font-semibold">{notification.userName}</span>{' '}
+                                  <span className="text-muted-foreground">
+                                    {getNotificationText(notification).action}
+                                  </span>
+                                </p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className="text-xs text-muted-foreground/70 font-mono bg-muted/50 px-2 py-0.5 rounded">
+                                    ID: {getNotificationText(notification).userId}
+                                  </span>
+                                </div>
+                                <p className="text-xs md:text-sm text-muted-foreground mt-1.5">
+                                  {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
+                                </p>
+                              </div>
+                            </div>
                           </div>
 
                           <div className="flex items-center gap-2 flex-shrink-0">
