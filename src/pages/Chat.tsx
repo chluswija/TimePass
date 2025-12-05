@@ -166,11 +166,7 @@ const Chat = () => {
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto">
           <div className="container mx-auto max-w-4xl px-4 py-4">
-            {loading ? (
-              <div className="text-center py-10">
-                <p className="text-muted-foreground">Loading messages...</p>
-              </div>
-            ) : messages.length === 0 ? (
+            {messages.length === 0 ? (
               <div className="text-center py-20">
                 <p className="text-muted-foreground mb-2">No messages yet</p>
                 <p className="text-sm text-muted-foreground">
