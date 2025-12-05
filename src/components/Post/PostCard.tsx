@@ -391,45 +391,56 @@ const PostCard = ({ post }: PostCardProps) => {
                                   <span className="text-xs text-muted-foreground">
                                     {formatDistanceToNow(new Date(comment.timestamp), { addSuffix: true })}
                                   </span>
-                                  {user && comment.userId !== user.uid && (
+                                  {user && (
                                     <>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-auto p-0 text-xs font-semibold text-muted-foreground hover:text-foreground"
-                                        onClick={() => setReplyingTo({ id: comment.userId, username: comment.username })}
-                                      >
-                                        <Reply className="h-3 w-3 mr-1" />
-                                        Reply
-                                      </Button>
-                                      <Popover>
-                                        <PopoverTrigger asChild>
+                                      {/* Show Reply/React buttons for anyone except when replying to your own comment */}
+                                      {comment.userId !== user.uid && (
+                                        <>
                                           <Button
                                             variant="ghost"
                                             size="sm"
                                             className="h-auto p-0 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                                            onClick={() => setReplyingTo({ id: comment.userId, username: comment.username })}
                                           >
-                                            <Smile className="h-3 w-3 mr-1" />
-                                            React
+                                            <Reply className="h-3 w-3 mr-1" />
+                                            Reply
                                           </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-2">
-                                          <div className="flex gap-1">
-                                            {emojis.map((emoji) => (
-                                              <button
-                                                key={emoji}
-                                                onClick={() => {
-                                                  setCommentText(emoji);
-                                                  setReplyingTo({ id: comment.userId, username: comment.username });
-                                                }}
-                                                className="text-xl hover:scale-125 transition-transform p-1"
+                                          <Popover>
+                                            <PopoverTrigger asChild>
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-auto p-0 text-xs font-semibold text-muted-foreground hover:text-foreground"
                                               >
-                                                {emoji}
-                                              </button>
-                                            ))}
-                                          </div>
-                                        </PopoverContent>
-                                      </Popover>
+                                                <Smile className="h-3 w-3 mr-1" />
+                                                React
+                                              </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-2">
+                                              <div className="flex gap-1">
+                                                {emojis.map((emoji) => (
+                                                  <button
+                                                    key={emoji}
+                                                    onClick={() => {
+                                                      setCommentText(emoji);
+                                                      setReplyingTo({ id: comment.userId, username: comment.username });
+                                                    }}
+                                                    className="text-xl hover:scale-125 transition-transform p-1"
+                                                  >
+                                                    {emoji}
+                                                  </button>
+                                                ))}
+                                              </div>
+                                            </PopoverContent>
+                                          </Popover>
+                                        </>
+                                      )}
+                                      {/* Show special "Author" badge when the post author replies to comments */}
+                                      {post.authorId === user.uid && (
+                                        <span className="text-xs font-semibold text-primary px-2 py-0.5 rounded-full bg-primary/10">
+                                          Author
+                                        </span>
+                                      )}
                                     </>
                                   )}
                                 </div>
