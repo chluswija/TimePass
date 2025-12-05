@@ -28,14 +28,16 @@ const StoryPreview = ({ story, isOwnStory = false, userName }: StoryPreviewProps
         to="/create?mode=story"
         className="flex flex-col items-center gap-2 cursor-pointer group"
       >
-        <div className="relative">
-          <Avatar className="h-16 w-16 ring-2 ring-gray-300 group-hover:ring-primary transition-all">
-            <AvatarImage src={story.author.profilePic} />
-            <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white font-semibold">
-              {firstLetter}
-            </AvatarFallback>
-          </Avatar>
-          <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-1">
+        <div className="relative p-[2px] rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 group-hover:from-yellow-500 group-hover:via-pink-600 group-hover:to-purple-700 transition-all">
+          <div className="bg-background rounded-full p-[2px]">
+            <Avatar className="h-14 w-14">
+              <AvatarImage src={story.author.profilePic} />
+              <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white font-semibold">
+                {firstLetter}
+              </AvatarFallback>
+            </Avatar>
+          </div>
+          <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-1 ring-2 ring-background">
             <Plus className="h-3 w-3" />
           </div>
         </div>
@@ -49,13 +51,15 @@ const StoryPreview = ({ story, isOwnStory = false, userName }: StoryPreviewProps
       to={`/profile/${story.authorId}`}
       className="flex flex-col items-center gap-2 cursor-pointer group"
     >
-      <div className="relative">
-        <Avatar className="h-16 w-16 ring-2 ring-pink-500 group-hover:ring-pink-600 transition-all">
-          <AvatarImage src={story.author.profilePic} />
-          <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white font-semibold">
-            {story.author.username?.[0]?.toUpperCase() || 'U'}
-          </AvatarFallback>
-        </Avatar>
+      <div className="relative p-[2px] rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 group-hover:from-yellow-500 group-hover:via-pink-600 group-hover:to-purple-700 transition-all">
+        <div className="bg-background rounded-full p-[2px]">
+          <Avatar className="h-14 w-14">
+            <AvatarImage src={story.author.profilePic} />
+            <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white font-semibold">
+              {story.author.username?.[0]?.toUpperCase() || 'U'}
+            </AvatarFallback>
+          </Avatar>
+        </div>
       </div>
       <p className="text-xs font-medium text-center truncate max-w-[80px]">
         {story.author.username}

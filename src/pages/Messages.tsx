@@ -32,10 +32,15 @@ const Messages = () => {
         const usersSnapshot = await getDocs(usersQuery);
         
         const users = usersSnapshot.docs
-          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .map(doc => ({ 
+            id: doc.id, 
+            uid: doc.id, // Ensure uid is set to document ID
+            ...doc.data() 
+          }))
           .filter((foundUser: any) => {
             // Filter out current user and match search query
-            const isNotCurrentUser = foundUser.uid !== user?.uid;
+            const userId = foundUser.uid || foundUser.id;
+            const isNotCurrentUser = userId !== user?.uid;
             const matchesSearch = 
               foundUser.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
               foundUser.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -102,33 +107,36 @@ const Messages = () => {
                 </div>
               ) : searchResults.length > 0 ? (
                 <div className="space-y-1">
-                  {searchResults.map((foundUser) => (
-                    <Link
-                      key={foundUser.id}
-                      to={`/messages/${foundUser.uid}`}
-                      className="flex items-center gap-3 p-3 hover:bg-muted rounded-lg transition-colors"
-                    >
-                      <Avatar className="h-12 w-12">
-                        <AvatarImage src={foundUser.profilePicUrl || foundUser.photoURL} />
-                        <AvatarFallback>
-                          {(foundUser.username || foundUser.displayName)?.[0]?.toUpperCase() || 'U'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-semibold">
-                            {foundUser.username || foundUser.displayName || 'User'}
-                          </p>
+                  {searchResults.map((foundUser) => {
+                    const chatUserId = foundUser.uid || foundUser.id;
+                    return (
+                      <Link
+                        key={foundUser.id}
+                        to={`/messages/${chatUserId}`}
+                        className="flex items-center gap-3 p-3 hover:bg-muted rounded-lg transition-colors"
+                      >
+                        <Avatar className="h-12 w-12">
+                          <AvatarImage src={foundUser.profilePicUrl || foundUser.photoURL} />
+                          <AvatarFallback>
+                            {(foundUser.username || foundUser.displayName)?.[0]?.toUpperCase() || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold">
+                              {foundUser.username || foundUser.displayName || 'User'}
+                            </p>
+                          </div>
+                          {foundUser.bio && (
+                            <p className="text-sm text-muted-foreground truncate mt-1">
+                              {foundUser.bio}
+                            </p>
+                          )}
                         </div>
-                        {foundUser.bio && (
-                          <p className="text-sm text-muted-foreground truncate mt-1">
-                            {foundUser.bio}
-                          </p>
-                        )}
-                      </div>
-                      <MessageCircle className="h-5 w-5 text-primary" />
-                    </Link>
-                  ))}
+                        <MessageCircle className="h-5 w-5 text-primary" />
+                      </Link>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-20">
