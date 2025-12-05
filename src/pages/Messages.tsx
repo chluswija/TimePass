@@ -218,12 +218,6 @@ const Messages = () => {
                 </div>
               )}
             </div>
-          ) : loadingConversations ? (
-            // Loading State
-            <div className="text-center py-10">
-              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
-              <p className="text-muted-foreground mt-4">Loading conversations...</p>
-            </div>
           ) : conversations.length === 0 ? (
             // Empty State - No Conversations
             <div className="flex flex-col items-center justify-center py-20 text-center">
