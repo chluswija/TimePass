@@ -3,18 +3,20 @@ import SidebarNavigation from '@/components/Layout/SidebarNavigation';
 import { Input } from '@/components/ui/input';
 import { Search, MessageCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { collection, query, getDocs } from 'firebase/firestore';
+import { collection, query, getDocs, where, orderBy, limit, onSnapshot, or, and, getDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { formatDistanceToNow } from 'date-fns';
 
 const Messages = () => {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [conversations] = useState<any[]>([]); // Empty for now, will be populated with real data later
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [loadingConversations, setLoadingConversations] = useState(true);
 
   // Search for users when typing
   useEffect(() => {
@@ -58,6 +60,66 @@ const Messages = () => {
     const debounce = setTimeout(searchUsers, 300);
     return () => clearTimeout(debounce);
   }, [searchQuery, user]);
+
+  // Load conversations with real-time updates
+  useEffect(() => {
+    if (!user) return;
+
+    const messagesQuery = query(
+      collection(db, 'messages'),
+      or(
+        where('senderId', '==', user.uid),
+        where('receiverId', '==', user.uid)
+      ),
+      orderBy('timestamp', 'desc'),
+      limit(50)
+    );
+
+    const unsubscribe = onSnapshot(messagesQuery, async (snapshot) => {
+      const messagesList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as any[];
+
+      // Group messages by conversation partner
+      const conversationsMap = new Map();
+      
+      for (const msg of messagesList) {
+        const partnerId = msg.senderId === user.uid ? msg.receiverId : msg.senderId;
+        
+        if (!conversationsMap.has(partnerId)) {
+          // Fetch partner's user data
+          try {
+            const userDoc = await getDoc(doc(db, 'users', partnerId));
+            const userData = userDoc.exists() ? userDoc.data() : {};
+            
+            conversationsMap.set(partnerId, {
+              id: partnerId,
+              partnerId,
+              name: userData.username || userData.displayName || 'User',
+              profilePic: userData.profilePicUrl || userData.photoURL,
+              lastMessage: msg.text,
+              timestamp: msg.timestamp,
+              unread: msg.senderId !== user.uid && !msg.read,
+            });
+          } catch (error) {
+            console.error('Error fetching user data:', error);
+          }
+        }
+      }
+
+      const conversationsArray = Array.from(conversationsMap.values())
+        .sort((a, b) => {
+          if (!a.timestamp || !b.timestamp) return 0;
+          return b.timestamp.toMillis() - a.timestamp.toMillis();
+        });
+      
+      setConversations(conversationsArray);
+      setLoadingConversations(false);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
 
   const showSearchResults = searchQuery.trim().length > 0;
 
@@ -122,11 +184,19 @@ const Messages = () => {
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <p className="font-semibold">
                               {foundUser.username || foundUser.displayName || 'User'}
                             </p>
+                            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                              ID: {chatUserId.substring(0, 8)}...
+                            </span>
                           </div>
+                          {foundUser.email && (
+                            <p className="text-xs text-muted-foreground truncate">
+                              {foundUser.email}
+                            </p>
+                          )}
                           {foundUser.bio && (
                             <p className="text-sm text-muted-foreground truncate mt-1">
                               {foundUser.bio}
@@ -146,6 +216,12 @@ const Messages = () => {
                 </div>
               )}
             </div>
+          ) : loadingConversations ? (
+            // Loading State
+            <div className="text-center py-10">
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
+              <p className="text-muted-foreground mt-4">Loading conversations...</p>
+            </div>
           ) : conversations.length === 0 ? (
             // Empty State - No Conversations
             <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -158,20 +234,38 @@ const Messages = () => {
               </p>
             </div>
           ) : (
-            // Conversations List (future implementation)
+            // Conversations List with Real Data
             <div className="space-y-1">
+              <h2 className="text-sm font-semibold text-muted-foreground px-2 mb-3">Recent Chats</h2>
               {conversations.map((conversation) => (
-                <div
+                <Link
                   key={conversation.id}
-                  className="flex items-center gap-3 p-3 hover:bg-muted rounded-lg cursor-pointer transition-colors"
+                  to={`/messages/${conversation.partnerId}`}
+                  className="flex items-center gap-3 p-3 hover:bg-muted rounded-lg transition-colors"
                 >
-                  <div className="flex-1">
-                    <p className="font-semibold">{conversation.name}</p>
+                  <Avatar className="h-12 w-12">
+                    <AvatarImage src={conversation.profilePic} />
+                    <AvatarFallback>
+                      {conversation.name[0]?.toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <p className="font-semibold">{conversation.name}</p>
+                      {conversation.timestamp && (
+                        <span className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(conversation.timestamp.toDate(), { addSuffix: true })}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-sm text-muted-foreground truncate">
                       {conversation.lastMessage}
                     </p>
                   </div>
-                </div>
+                  {conversation.unread && (
+                    <div className="h-2 w-2 bg-primary rounded-full"></div>
+                  )}
+                </Link>
               ))}
             </div>
           )}
